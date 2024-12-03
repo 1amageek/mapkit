@@ -1,0 +1,35 @@
+{
+  "name": "@1amageek/mapkit",
+  "version": "0.1.0",
+  "private": false,
+  "contributors": [
+    {
+      "name": "Norikazu Muramoto",
+      "email": "tmy0x3@icloud.com"
+    }
+  ],
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib/*"
+  ],
+  "keywords": [
+    "mapkit",
+    "apple"
+  ],
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "scripts": {
+    "build": "tsup src --dts",
+    "prepare": "npm run build"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/apple-mapkit-js-browser": "^5.78.1",
+    "tsup": "^8.3.5"
+  }
+}
