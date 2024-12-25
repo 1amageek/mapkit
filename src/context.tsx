@@ -23,11 +23,12 @@ export interface TokenData {
 
 export interface MapKitInitOptions {
   language?: string
-  onError?: (error: Error) => void
+  libraries?: string[]
 }
 
 export interface MapKitProviderProps {
   children: ReactNode
+  options?: MapKitInitOptions
   fetchToken: () => Promise<MapKitTokenResponse>
 }
 
@@ -46,7 +47,7 @@ const RETRY_ATTEMPTS = 3
 const RETRY_DELAY = 2000
 const TOKEN_BUFFER_TIME = 60
 
-export const MapKitProvider = ({ children, fetchToken }: MapKitProviderProps) => {
+export const MapKitProvider = ({ children, fetchToken, options }: MapKitProviderProps) => {
   const [initialized, setInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
@@ -88,12 +89,12 @@ export const MapKitProvider = ({ children, fetchToken }: MapKitProviderProps) =>
         setTokenData(newTokenData)
         window.mapkit.init({
           authorizationCallback: (done: (token: string) => void) => done(newTokenData.token),
-          language: options?.language
+          language: options?.language ?? "en"
         })
       } else {
         window.mapkit.init({
           authorizationCallback: (done: (token: string) => void) => done(tokenData.token!),
-          language: options?.language
+          language: options?.language ?? "en"
         })
       }
 
@@ -102,7 +103,7 @@ export const MapKitProvider = ({ children, fetchToken }: MapKitProviderProps) =>
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to initialize MapKit')
     }
-  }, [tokenData])
+  }, [tokenData, JSON.stringify(options)])
 
   const load = async (options?: MapKitInitOptions) => {
     if (isLoading || initialized) return
@@ -116,7 +117,6 @@ export const MapKitProvider = ({ children, fetchToken }: MapKitProviderProps) =>
     } catch (err) {
       const error = err instanceof Error ? err : new Error("An unknown error occurred")
       setError(error)
-      options?.onError?.(error)
     } finally {
       setIsLoading(false)
     }
