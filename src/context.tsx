@@ -102,7 +102,7 @@ export const MapKitProvider = ({ children, fetchToken }: MapKitProviderProps) =>
     } catch (error) {
       throw error instanceof Error ? error : new Error('Failed to initialize MapKit')
     }
-  }, [tokenData, fetchToken])
+  }, [tokenData])
 
   const load = async (options?: MapKitInitOptions) => {
     if (isLoading || initialized) return
@@ -131,7 +131,7 @@ export const MapKitProvider = ({ children, fetchToken }: MapKitProviderProps) =>
 
   useEffect(() => {
     return () => reset()
-  }, [reset])
+  }, [])
 
   return (
     <MapKitContext.Provider 

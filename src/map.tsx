@@ -39,7 +39,7 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
     region,
     onMapError,
     onMapReady,
-    className = ''
+    className = ""
   } = props
 
 
@@ -51,7 +51,7 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
 
   useEffect(() => {
     load({ onError: onMapError })
-  }, [load, onMapError])
+  }, [])
 
   const annotationsData = useMemo(() => {
     return childrenArray
@@ -76,7 +76,6 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
       
       mapRef.current = map
       onMapReady?.(map)
-
       return () => {
         if (mapRef.current) {
           mapRef.current.destroy()
@@ -253,12 +252,12 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
   return (
     <div 
       ref={el => {
-        if (typeof ref === 'function') ref(el)
+        if (typeof ref === "function") ref(el)
         else if (ref) ref.current = el
         containerRef.current = el
       }}
       id={id}
-      className={`map flex w-full h-full relative ${className}`}
+      className={`map ${className}`}
     />
   )
 })
