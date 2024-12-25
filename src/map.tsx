@@ -1,6 +1,7 @@
-import React, { useEffect, forwardRef, useMemo, useRef } from "react"
+import React, { useEffect, forwardRef, useMemo, useRef, useState, ForwardedRef } from "react"
 import { useMapKit } from "./context"
 import { createRoot } from "react-dom/client"
+import { MapKitError, createMapKitError, isMapKitError } from "./errors"
 import {
   Location,
   Region,
@@ -12,15 +13,17 @@ import {
   isPolygonOverlayElement
 } from "./annotations"
 
-interface MapProps {
+export interface MapProps {
   id?: string
   options?: mapkit.MapConstructorOptions
   children?: React.ReactNode
   location?: Location | null
   region?: Region | null
-  onMapError?: (error: Error) => void
+  onMapError?: (error: Error | MapKitError) => void
   onMapReady?: (map: mapkit.Map) => void
   className?: string
+  loadingComponent?: React.ReactNode
+  errorComponent?: React.ReactNode
 }
 
 const DEFAULT_MAP_OPTIONS: mapkit.MapConstructorOptions = {
@@ -30,8 +33,8 @@ const DEFAULT_MAP_OPTIONS: mapkit.MapConstructorOptions = {
   showsZoomControl: true
 }
 
-const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
-  const {
+const Map = forwardRef(function Map(
+  {
     id,
     options = DEFAULT_MAP_OPTIONS,
     children,
@@ -39,19 +42,36 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
     region,
     onMapError,
     onMapReady,
-    className = ""
-  } = props
-
-
-  const { isReady, isLoading, error, load } = useMapKit()
+    className = "",
+    loadingComponent,
+    errorComponent
+  }: MapProps,
+  ref: ForwardedRef<HTMLDivElement>
+): React.ReactElement | null {
+  const { isReady, isLoading, error: mapKitError, load } = useMapKit()
   const mapRef = useRef<mapkit.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const [mapError, setMapError] = useState<Error | MapKitError | null>(null)
 
   const childrenArray = React.Children.toArray(children)
 
   useEffect(() => {
-    load({ onError: onMapError })
-  }, [])
+    const handleError = (error: Error | MapKitError) => {
+      setMapError(error)
+      onMapError?.(error)
+      
+      if (mapRef.current) {
+        try {
+          mapRef.current.destroy()
+        } catch (cleanupError) {
+          console.error('Error during map cleanup:', cleanupError)
+        }
+        mapRef.current = null
+      }
+    }
+
+    load(handleError)
+  }, [load, onMapError])
 
   const annotationsData = useMemo(() => {
     return childrenArray
@@ -69,21 +89,34 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
     if (!isReady || !containerRef.current) return
 
     try {
+      if (!window.mapkit) {
+        throw createMapKitError('NOT_LOADED')
+      }
+
       const map = new window.mapkit.Map(containerRef.current, {
         ...DEFAULT_MAP_OPTIONS,
         ...options
       })
-      
+
       mapRef.current = map
       onMapReady?.(map)
+
       return () => {
         if (mapRef.current) {
-          mapRef.current.destroy()
+          try {
+            mapRef.current.destroy()
+          } catch (error) {
+            console.error('Error destroying map:', error)
+          }
           mapRef.current = null
         }
       }
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Failed to initialize map")
+      const error = isMapKitError(err) ? err : createMapKitError(
+        'INIT_ERROR',
+        err instanceof Error ? err.message : 'Failed to initialize map'
+      )
+      setMapError(error)
       onMapError?.(error)
     }
   }, [isReady, JSON.stringify(options)])
@@ -92,18 +125,27 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
     const map = mapRef.current
     if (!map) return
 
-    if (location) {
-      const coordinate = new window.mapkit.Coordinate(location.latitude, location.longitude)
-      const annotation = new window.mapkit.MarkerAnnotation(coordinate)
-      map.showItems([annotation], { animate: true })
-    }
+    try {
+      if (location) {
+        const coordinate = new window.mapkit.Coordinate(location.latitude, location.longitude)
+        const annotation = new window.mapkit.MarkerAnnotation(coordinate)
+        map.showItems([annotation], { animate: true })
+      }
 
-    if (region) {
-      const mapkitRegion = new window.mapkit.CoordinateRegion(
-        new window.mapkit.Coordinate(region.center.latitude, region.center.longitude),
-        new window.mapkit.CoordinateSpan(region.span.latitudeDelta, region.span.longitudeDelta)
+      if (region) {
+        const mapkitRegion = new window.mapkit.CoordinateRegion(
+          new window.mapkit.Coordinate(region.center.latitude, region.center.longitude),
+          new window.mapkit.CoordinateSpan(region.span.latitudeDelta, region.span.longitudeDelta)
+        )
+        map.setRegionAnimated(mapkitRegion, true)
+      }
+    } catch (err) {
+      const error = isMapKitError(err) ? err : createMapKitError(
+        'UNKNOWN_ERROR',
+        'Failed to update map location/region'
       )
-      map.setRegionAnimated(mapkitRegion, true)
+      setMapError(error)
+      onMapError?.(error)
     }
   }, [location, region])
 
@@ -111,146 +153,171 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
     const map = mapRef.current
     if (!map) return
 
-    // Store current annotations and overlays
-    const currentAnnotations = new Set(map.annotations)
-    const currentOverlays = new Set(map.overlays)
+    try {
+      const currentAnnotations = new Set(map.annotations)
+      const currentOverlays = new Set(map.overlays)
 
-    const newAnnotations: mapkit.Annotation[] = []
-    const newOverlays: mapkit.Overlay[] = []
+      const newAnnotations: mapkit.Annotation[] = []
+      const newOverlays: mapkit.Overlay[] = []
 
-    childrenArray.forEach((child) => {
-      if (isMarkerAnnotationElement(child)) {
-        const { coordinate, callout, ...options } = child.props
-        const annotation = new mapkit.MarkerAnnotation(
-          new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-          options
-        )
-        newAnnotations.push(annotation)
-      }
-
-      if (isImageAnnotationElement(child)) {
-        const { coordinate, callout, ...options } = child.props
-        const annotation = new mapkit.ImageAnnotation(
-          new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-          options
-        )
-        newAnnotations.push(annotation)
-      }
-
-      if (isCustomAnnotationElement(child)) {
-        const { coordinate, children, callout, ...options } = child.props
-        const annotation = new mapkit.Annotation(
-          new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-          (coordinate: mapkit.Coordinate) => {
-            const element = document.createElement("div")
-            const root = createRoot(element)
-            root.render(React.createElement(React.Fragment, null, children))
-            return element
-          },
-          options
-        )
-        if (callout) {
-          annotation.callout = {
-            calloutAnchorOffsetForAnnotation: callout.calloutAnchorOffsetForAnnotation,
-            calloutShouldAppearForAnnotation: callout.calloutShouldAppearForAnnotation,
-            calloutShouldAnimateForAnnotation: callout.calloutShouldAnimateForAnnotation,
-            calloutAppearanceAnimationForAnnotation: callout.calloutAppearanceAnimationForAnnotation,
-            calloutContentForAnnotation: callout.calloutContentForAnnotation && ((mapAnnotation) => {
-              const element = document.createElement("div")
-              const root = createRoot(element)
-              root.render(callout.calloutContentForAnnotation!(mapAnnotation))
-              return element
-            }),
-            calloutElementForAnnotation: callout.calloutElementForAnnotation && ((mapAnnotation) => {
-              const element = document.createElement("div")
-              const root = createRoot(element)
-              root.render(callout.calloutElementForAnnotation!(mapAnnotation))
-              return element
-            }),
-            calloutLeftAccessoryForAnnotation: callout.calloutLeftAccessoryForAnnotation && ((mapAnnotation) => {
-              const element = document.createElement("div")
-              const root = createRoot(element)
-              root.render(callout.calloutLeftAccessoryForAnnotation!(mapAnnotation))
-              return element
-            }),
-            calloutRightAccessoryForAnnotation: callout.calloutRightAccessoryForAnnotation && ((mapAnnotation) => {
-              const element = document.createElement("div")
-              const root = createRoot(element)
-              root.render(callout.calloutRightAccessoryForAnnotation!(mapAnnotation))
-              return element
-            })
-          }
+      childrenArray.forEach((child) => {
+        if (isMarkerAnnotationElement(child)) {
+          const { coordinate, callout, ...options } = child.props
+          const annotation = new mapkit.MarkerAnnotation(
+            new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
+            options
+          )
+          newAnnotations.push(annotation)
         }
-        newAnnotations.push(annotation)
-      }
 
-      if (isCircleOverlayElement(child)) {
-        const { coordinate, radius, options } = child.props
-        const overlay = new mapkit.CircleOverlay(coordinate, radius, options)
-        newOverlays.push(overlay)
-      }
+        if (isImageAnnotationElement(child)) {
+          const { coordinate, callout, ...options } = child.props
+          const annotation = new mapkit.ImageAnnotation(
+            new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
+            options
+          )
+          newAnnotations.push(annotation)
+        }
 
-      if (isPolylineOverlayElement(child)) {
-        const { points, options } = child.props
-        const overlay = new mapkit.PolylineOverlay(points, options)
-        newOverlays.push(overlay)
-      }
+        if (isCustomAnnotationElement(child)) {
+          const { coordinate, children, callout, ...options } = child.props
+          const annotation = new mapkit.Annotation(
+            new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
+            (coordinate: mapkit.Coordinate) => {
+              const element = document.createElement("div")
+              const root = createRoot(element)
+              root.render(React.createElement(React.Fragment, null, children))
+              return element
+            },
+            options
+          )
+          if (callout) {
+            annotation.callout = {
+              calloutAnchorOffsetForAnnotation: callout.calloutAnchorOffsetForAnnotation,
+              calloutShouldAppearForAnnotation: callout.calloutShouldAppearForAnnotation,
+              calloutShouldAnimateForAnnotation: callout.calloutShouldAnimateForAnnotation,
+              calloutAppearanceAnimationForAnnotation: callout.calloutAppearanceAnimationForAnnotation,
+              calloutContentForAnnotation: callout.calloutContentForAnnotation && ((mapAnnotation) => {
+                const element = document.createElement("div")
+                const root = createRoot(element)
+                root.render(callout.calloutContentForAnnotation!(mapAnnotation))
+                return element
+              }),
+              calloutElementForAnnotation: callout.calloutElementForAnnotation && ((mapAnnotation) => {
+                const element = document.createElement("div")
+                const root = createRoot(element)
+                root.render(callout.calloutElementForAnnotation!(mapAnnotation))
+                return element
+              }),
+              calloutLeftAccessoryForAnnotation: callout.calloutLeftAccessoryForAnnotation && ((mapAnnotation) => {
+                const element = document.createElement("div")
+                const root = createRoot(element)
+                root.render(callout.calloutLeftAccessoryForAnnotation!(mapAnnotation))
+                return element
+              }),
+              calloutRightAccessoryForAnnotation: callout.calloutRightAccessoryForAnnotation && ((mapAnnotation) => {
+                const element = document.createElement("div")
+                const root = createRoot(element)
+                root.render(callout.calloutRightAccessoryForAnnotation!(mapAnnotation))
+                return element
+              })
+            }
+          }
+          newAnnotations.push(annotation)
+        }
 
-      if (isPolygonOverlayElement(child)) {
-        const { points, options } = child.props
-        const overlay = new mapkit.PolygonOverlay(points, options)
-        newOverlays.push(overlay)
-      }
-    })
+        if (isCircleOverlayElement(child)) {
+          const { coordinate, radius, options } = child.props
+          const overlay = new mapkit.CircleOverlay(coordinate, radius, options)
+          newOverlays.push(overlay)
+        }
 
-    // Update annotations
-    map.annotations.forEach(annotation => {
-      if (!newAnnotations.includes(annotation)) {
-        map.removeAnnotation(annotation)
-      }
-    })
+        if (isPolylineOverlayElement(child)) {
+          const { points, options } = child.props
+          const overlay = new mapkit.PolylineOverlay(points, options)
+          newOverlays.push(overlay)
+        }
 
-    // Update overlays
-    currentOverlays.forEach(overlay => {
-      if (!newOverlays.includes(overlay)) {
-        map.removeOverlay(overlay)
-      }
-    })
-
-    // Add new items
-    newAnnotations.forEach(annotation => {
-      if (!currentAnnotations.has(annotation)) {
-        map.addAnnotation(annotation)
-      }
-    })
-
-    newOverlays.forEach(overlay => {
-      if (!currentOverlays.has(overlay)) {
-        map.addOverlay(overlay)
-      }
-    })
-
-    // Setup cluster handling
-    map.annotationForCluster = function (clusterAnnotation) {
-      const { memberAnnotations } = clusterAnnotation
-      return new mapkit.MarkerAnnotation(clusterAnnotation.coordinate, {
-        title: `(${memberAnnotations.length})`,
-        glyphText: memberAnnotations.length.toString()
+        if (isPolygonOverlayElement(child)) {
+          const { points, options } = child.props
+          const overlay = new mapkit.PolygonOverlay(points, options)
+          newOverlays.push(overlay)
+        }
       })
-    }
 
-    return () => {
-      map.removeAnnotations(map.annotations)
-      map.removeOverlays(map.overlays)
+      // Remove annotations not in new set
+      map.annotations.forEach(annotation => {
+        if (!newAnnotations.includes(annotation)) {
+          map.removeAnnotation(annotation)
+        }
+      })
+
+      // Remove overlays not in new set
+      currentOverlays.forEach(overlay => {
+        if (!newOverlays.includes(overlay)) {
+          map.removeOverlay(overlay)
+        }
+      })
+
+      // Add new annotations
+      newAnnotations.forEach(annotation => {
+        if (!currentAnnotations.has(annotation)) {
+          map.addAnnotation(annotation)
+        }
+      })
+
+      // Add new overlays
+      newOverlays.forEach(overlay => {
+        if (!currentOverlays.has(overlay)) {
+          map.addOverlay(overlay)
+        }
+      })
+
+      // Setup cluster handling
+      map.annotationForCluster = function(clusterAnnotation) {
+        const { memberAnnotations } = clusterAnnotation
+        return new mapkit.MarkerAnnotation(clusterAnnotation.coordinate, {
+          title: `(${memberAnnotations.length})`,
+          glyphText: memberAnnotations.length.toString()
+        })
+      }
+
+      return () => {
+        try {
+          map.removeAnnotations(map.annotations)
+          map.removeOverlays(map.overlays)
+        } catch (error) {
+          console.error('Error cleaning up annotations/overlays:', error)
+        }
+      }
+    } catch (err) {
+      const error = isMapKitError(err) ? err : createMapKitError(
+        'UNKNOWN_ERROR',
+        'Failed to update map annotations/overlays'
+      )
+      setMapError(error)
+      onMapError?.(error)
     }
   }, [childrenArray, annotationsData])
 
-  if (isLoading || error || !isReady) {
+  if (isLoading) {
+    return loadingComponent as React.ReactElement ?? <div>Loading map...</div>
+  }
+
+  if (mapKitError || mapError) {
+    return errorComponent as React.ReactElement ?? (
+      <div className="map-error">
+        {(mapKitError || mapError)?.message || 'An error occurred while loading the map'}
+      </div>
+    )
+  }
+
+  if (!isReady) {
     return null
   }
 
   return (
-    <div 
+    <div
       ref={el => {
         if (typeof ref === "function") ref(el)
         else if (ref) ref.current = el
@@ -258,6 +325,8 @@ const Map = forwardRef<HTMLDivElement, MapProps>((props, ref) => {
       }}
       id={id}
       className={`map ${className}`}
+      role="application"
+      aria-label="Map"
     />
   )
 })

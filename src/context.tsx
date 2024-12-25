@@ -1,4 +1,5 @@
-import React, { useState, createContext, useContext, ReactNode, useEffect, useCallback } from "react"
+import { useState, useMemo, createContext, useContext, ReactNode, useEffect, useCallback } from "react"
+import { MapKitError, createMapKitError, isMapKitError } from "./errors"
 
 type MapKit = typeof mapkit
 
@@ -11,8 +12,8 @@ export interface MapKitContextProps {
   mapkit: MapKit | null
   isReady: boolean
   isLoading: boolean
-  error: Error | null
-  load: (options?: MapKitInitOptions) => Promise<void>
+  error: MapKitError | null
+  load: (onError?: (error: MapKitError) => void, options?: MapKitInitOptions) => Promise<void>
   reset: () => void
 }
 
@@ -23,13 +24,25 @@ export interface TokenData {
 
 export interface MapKitInitOptions {
   language?: string
+  version?: string
   libraries?: string[]
+  tokenFetchRetries?: number
+  tokenFetchRetryDelay?: number
 }
 
 export interface MapKitProviderProps {
   children: ReactNode
-  options?: MapKitInitOptions
+  options?: Partial<MapKitInitOptions>
   fetchToken: () => Promise<MapKitTokenResponse>
+  onError?: (error: MapKitError) => void
+}
+
+const DEFAULT_OPTIONS: Required<MapKitInitOptions> = {
+  language: 'en',
+  version: '5.x.x',
+  libraries: [],
+  tokenFetchRetries: 3,
+  tokenFetchRetryDelay: 2000
 }
 
 const defaultContextValue: MapKitContextProps = {
@@ -43,69 +56,160 @@ const defaultContextValue: MapKitContextProps = {
 
 export const MapKitContext = createContext<MapKitContextProps>(defaultContextValue)
 
-const RETRY_ATTEMPTS = 3
-const RETRY_DELAY = 2000
-const TOKEN_BUFFER_TIME = 60
+const TOKEN_BUFFER_TIME = 60 // seconds before token expiry to refresh
 
-export const MapKitProvider = ({ children, fetchToken, options }: MapKitProviderProps) => {
+export const MapKitProvider = ({ 
+  children, 
+  fetchToken, 
+  options: userOptions, 
+  onError 
+}: MapKitProviderProps) => {
+  const options: Required<MapKitInitOptions> = {
+    ...DEFAULT_OPTIONS,
+    ...userOptions
+  }
+
   const [initialized, setInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<Error | null>(null)
+  const [error, setError] = useState<MapKitError | null>(null)
   const [mapkit, setMapkit] = useState<MapKit | null>(null)
-  const [tokenData, setTokenData] = useState<TokenData>({ token: null, expiresAt: null })
+  const [tokenData, setTokenData] = useState<TokenData>({
+    token: null,
+    expiresAt: null
+  })
 
-  const loadMapKitWithRetry = async (attempts = RETRY_ATTEMPTS): Promise<void> => {
+  const handleError = useCallback((error: unknown) => {
+    const mapKitError = isMapKitError(error)
+      ? error
+      : createMapKitError('UNKNOWN_ERROR', error instanceof Error ? error.message : undefined)
+    
+    setError(mapKitError)
+    onError?.(mapKitError)
+  }, [onError])
+
+  const fetchTokenWithRetry = useCallback(async (
+    attempts: number = options.tokenFetchRetries
+  ): Promise<MapKitTokenResponse> => {
+    try {
+      return await fetchToken()
+    } catch (err) {
+      if (attempts > 1) {
+        await new Promise(resolve => setTimeout(resolve, options.tokenFetchRetryDelay))
+        return fetchTokenWithRetry(attempts - 1)
+      }
+      throw createMapKitError(
+        'TOKEN_ERROR',
+        err instanceof Error ? err.message : undefined
+      )
+    }
+  }, [fetchToken, options.tokenFetchRetries, options.tokenFetchRetryDelay])
+
+  const loadMapKitWithRetry = useCallback(async (
+    attempts: number = options.tokenFetchRetries
+  ): Promise<void> => {
     try {
       const script = document.createElement("script")
-      script.src = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"
+      script.src = `https://cdn.apple-mapkit.com/mk/${options.version}/mapkit.js`
       script.crossOrigin = "anonymous"
       
       await new Promise<void>((resolve, reject) => {
         script.onload = () => resolve()
-        script.onerror = () => reject(new Error("Failed to load MapKit JS"))
+        script.onerror = () => reject(createMapKitError('LOAD_ERROR'))
         document.head.appendChild(script)
       })
+
+      if (options.libraries.length > 0) {
+        await Promise.all(options.libraries.map(async (library) => {
+          const libraryScript = document.createElement("script")
+          libraryScript.src = `https://cdn.apple-mapkit.com/mk/${options.version}/${library}.js`
+          libraryScript.crossOrigin = "anonymous"
+
+          await new Promise<void>((resolve, reject) => {
+            libraryScript.onload = () => resolve()
+            libraryScript.onerror = () => reject(
+              createMapKitError('LOAD_ERROR', `Failed to load library: ${library}`)
+            )
+            document.head.appendChild(libraryScript)
+          })
+        }))
+      }
     } catch (err) {
       if (attempts > 1) {
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+        await new Promise(resolve => setTimeout(resolve, options.tokenFetchRetryDelay))
         return loadMapKitWithRetry(attempts - 1)
       }
-      throw err
+      throw isMapKitError(err) ? err : createMapKitError('UNKNOWN_ERROR')
     }
-  }
+  }, [options.version, options.libraries, options.tokenFetchRetryDelay])
 
-  const initializeMapKit = useCallback(async (options?: MapKitInitOptions) => {
+  const validateToken = useCallback((token: string, expiresAt: number): boolean => {
+    const currentTime = Math.floor(Date.now() / 1000)
+    return token.length > 0 && expiresAt > currentTime + TOKEN_BUFFER_TIME
+  }, [])
+
+  const initializeMapKit = useCallback(async () => {
     if (!window.mapkit) {
-      throw new Error("MapKit JS not loaded")
+      throw createMapKitError('NOT_LOADED')
     }
 
     const currentTime = Math.floor(Date.now() / 1000)
     const shouldFetchNewToken = !tokenData.token || 
-      (tokenData.expiresAt && tokenData.expiresAt - currentTime < TOKEN_BUFFER_TIME)
+      !tokenData.expiresAt ||
+      tokenData.expiresAt - currentTime < TOKEN_BUFFER_TIME
 
     try {
+      let token: string
+      let expiresAt: number
+
       if (shouldFetchNewToken) {
-        const newTokenData = await fetchToken()
+        const newTokenData = await fetchTokenWithRetry()
+        if (!validateToken(newTokenData.token, newTokenData.expiresAt)) {
+          throw createMapKitError('TOKEN_ERROR', 'Invalid token data received')
+        }
+        token = newTokenData.token
+        expiresAt = newTokenData.expiresAt
         setTokenData(newTokenData)
-        window.mapkit.init({
-          authorizationCallback: (done: (token: string) => void) => done(newTokenData.token),
-          language: options?.language ?? "en"
-        })
       } else {
-        window.mapkit.init({
-          authorizationCallback: (done: (token: string) => void) => done(tokenData.token!),
-          language: options?.language ?? "en"
-        })
+        token = tokenData.token!
+        expiresAt = tokenData.expiresAt!
       }
+
+      window.mapkit.init({
+        authorizationCallback: (done: (token: string) => void) => done(token),
+        language: options.language
+      })
+
+      const refreshTimeout = (expiresAt - currentTime - TOKEN_BUFFER_TIME) * 1000
+      setTimeout(async () => {
+        try {
+          const newTokenData = await fetchTokenWithRetry()
+          setTokenData(newTokenData)
+        } catch (err) {
+          handleError(
+            isMapKitError(err) ? err : createMapKitError('TOKEN_ERROR')
+          )
+        }
+      }, refreshTimeout)
 
       setMapkit(window.mapkit)
       setInitialized(true)
     } catch (error) {
-      throw error instanceof Error ? error : new Error('Failed to initialize MapKit')
+      throw isMapKitError(error)
+        ? error
+        : createMapKitError('INIT_ERROR', error instanceof Error ? error.message : undefined)
     }
-  }, [tokenData, JSON.stringify(options)])
+  }, [
+    tokenData,
+    fetchTokenWithRetry,
+    validateToken,
+    options.language,
+    handleError
+  ])
 
-  const load = async (options?: MapKitInitOptions) => {
+  const load = useCallback(async (
+    onError?: (error: MapKitError) => void,
+    loadOptions?: MapKitInitOptions
+  ) => {
     if (isLoading || initialized) return
     
     setIsLoading(true)
@@ -113,14 +217,17 @@ export const MapKitProvider = ({ children, fetchToken, options }: MapKitProvider
 
     try {
       await loadMapKitWithRetry()
-      await initializeMapKit(options)
+      await initializeMapKit()
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("An unknown error occurred")
-      setError(error)
+      const mapKitError = isMapKitError(err)
+        ? err
+        : createMapKitError('UNKNOWN_ERROR')
+      handleError(mapKitError)
+      onError?.(mapKitError)
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [isLoading, initialized, loadMapKitWithRetry, initializeMapKit, handleError])
 
   const reset = useCallback(() => {
     setInitialized(false)
@@ -131,19 +238,19 @@ export const MapKitProvider = ({ children, fetchToken, options }: MapKitProvider
 
   useEffect(() => {
     return () => reset()
-  }, [])
+  }, [reset])
+
+  const contextValue = useMemo<MapKitContextProps>(() => ({
+    mapkit,
+    isReady: initialized,
+    isLoading,
+    error,
+    load,
+    reset
+  }), [mapkit, initialized, isLoading, error, load, reset])
 
   return (
-    <MapKitContext.Provider 
-      value={{ 
-        mapkit, 
-        isReady: initialized, 
-        isLoading,
-        error,
-        load,
-        reset
-      }}
-    >
+    <MapKitContext.Provider value={contextValue}>
       {children}
     </MapKitContext.Provider>
   )
@@ -152,11 +259,17 @@ export const MapKitProvider = ({ children, fetchToken, options }: MapKitProvider
 export const useMapKit = () => {
   const context = useContext(MapKitContext)
   if (!context) {
-    throw new Error("useMapKit must be used within a MapKitProvider")
+    throw createMapKitError(
+      'CONTEXT_ERROR',
+      'useMapKit must be used within a MapKitProvider'
+    )
   }
   return context
 }
 
 export const findMap = (id: string): mapkit.Map | null => {
-  return mapkit.maps.find((map: mapkit.Map) => map.element.parentElement?.id === id) ?? null
+  if (!window.mapkit) return null
+  return window.mapkit.maps.find(
+    (map: mapkit.Map) => map.element.parentElement?.id === id
+  ) ?? null
 }
