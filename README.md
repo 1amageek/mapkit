@@ -1,181 +1,192 @@
 # @1amageek/mapkit
 
-A React wrapper for Apple MapKit JS that provides a seamless integration with Apple Maps in your React applications.
+A React wrapper for Apple's MapKit JS, providing a seamless way to integrate Apple Maps into your React applications.
+
+## Features
+
+- 🗺️ Full TypeScript support
+- 🔄 React component lifecycle integration
+- 📍 Support for markers, custom annotations, and overlays
+- 🎨 Customizable map styling and controls
+- 🔒 Automatic token management and refresh
+- 🎯 Built-in error handling
+- 💫 Smooth animations and transitions
 
 ## Installation
 
 ```bash
 npm install @1amageek/mapkit
-# or
-yarn add @1amageek/mapkit
 ```
 
 ## Prerequisites
 
-You need to have a valid Apple Developer account and obtain a MapKit JS key. For more information, visit [Apple's MapKit JS documentation](https://developer.apple.com/documentation/mapkitjs).
+You'll need:
+1. An Apple Developer account
+2. A Maps ID from the Apple Developer portal
+3. A token generation endpoint in your backend
 
 ## Basic Usage
 
+First, wrap your application with the `MapKitProvider`:
+
 ```tsx
-import { MapKitProvider, Map, MarkerAnnotation } from '@1amageek/mapkit'
+import { MapKitProvider } from '@1amageek/mapkit';
 
-const fetchToken = async () => {
-  const response = await fetch('/api/mapkit-token')
-  if (!response.ok) {
-    throw new Error('Failed to fetch token')
-  }
-  return response.json() // Should return { token: string, expiresAt: number }
-}
+const App = () => {
+  const fetchToken = async () => {
+    // Fetch your MapKit JS token from your server
+    const response = await fetch('your-token-endpoint');
+    const data = await response.json();
+    return {
+      token: data.token,
+      expiresAt: data.expiresAt // Unix timestamp in seconds
+    };
+  };
 
-function App() {
   return (
-    <MapKitProvider fetchToken={fetchToken}>
-      <Map
-        options={{
-          showsUserLocation: true,
-          showsCompass: true
-        }}
-        onMapReady={(map) => console.log('Map is ready', map)}
-        onMapError={(error) => console.error('Map error:', error)}
-      >
-        <MarkerAnnotation
-          coordinate={{ latitude: 35.6812, longitude: 139.7671 }}
-          title="Tokyo"
-          subtitle="Japan"
-        />
-      </Map>
+    <MapKitProvider 
+      fetchToken={fetchToken}
+      options={{
+        language: 'en'
+      }}
+    >
+      <YourApp />
     </MapKitProvider>
-  )
-}
+  );
+};
 ```
 
-## Components
-
-### MapKitProvider
-
-The root component that manages MapKit JS initialization and token management.
+Then use the Map component:
 
 ```tsx
-interface MapKitProviderProps {
-  children: ReactNode
-  fetchToken: () => Promise<{
-    token: string
-    expiresAt: number
-  }>
-}
+import { Map, MarkerAnnotation } from '@1amageek/mapkit';
+
+const MapComponent = () => {
+  return (
+    <Map
+      id="my-map"
+      options={{
+        showsUserLocation: true,
+        showsCompass: "Adaptive",
+      }}
+      region={{
+        center: {
+          latitude: 35.6812,
+          longitude: 139.7671
+        },
+        span: {
+          latitudeDelta: 0.1,
+          longitudeDelta: 0.1
+        }
+      }}
+    >
+      <MarkerAnnotation
+        coordinate={{
+          latitude: 35.6812,
+          longitude: 139.7671
+        }}
+        title="Tokyo Tower"
+        subtitle="Tourist Attraction"
+      />
+    </Map>
+  );
+};
 ```
 
-### Map
+## Advanced Features
 
-The main map component that renders the Apple Map.
+### Custom Annotations
 
-```tsx
-interface MapProps {
-  id?: string
-  options?: mapkit.MapConstructorOptions
-  children?: ReactNode
-  location?: Location | null
-  region?: Region | null
-  onMapError?: (error: Error) => void
-  onMapReady?: (map: mapkit.Map) => void
-  className?: string
-}
-```
-
-### Annotations
-
-#### MarkerAnnotation
+Create custom annotations with your own React components:
 
 ```tsx
-<MarkerAnnotation
-  coordinate={{ latitude: number, longitude: number }}
-  title?: string
-  subtitle?: string
-  color?: string
-  glyphText?: string
-/>
-```
+import { CustomAnnotation } from '@1amageek/mapkit';
 
-#### CustomAnnotation
-
-```tsx
-<CustomAnnotation
-  coordinate={{ latitude: number, longitude: number }}
->
-  <div>Custom Marker Content</div>
-</CustomAnnotation>
-```
-
-#### ImageAnnotation
-
-```tsx
-<ImageAnnotation
-  coordinate={{ latitude: number, longitude: number }}
-  url={{
-    1: "path/to/image.png",
-    2: "path/to/image@2x.png"
-  }}
-/>
+const CustomPin = () => (
+  <CustomAnnotation
+    coordinate={{
+      latitude: 35.6812,
+      longitude: 139.7671
+    }}
+  >
+    <div className="custom-pin">
+      <img src="pin-icon.png" alt="Custom Pin" />
+    </div>
+  </CustomAnnotation>
+);
 ```
 
 ### Overlays
 
-#### CircleOverlay
+Add various types of overlays to your map:
 
 ```tsx
-<CircleOverlay
-  coordinate={{ latitude: number, longitude: number }}
-  radius={1000}
-  options={{
-    strokeColor: "#007AFF",
-    lineWidth: 2,
-  }}
-/>
+import { CircleOverlay, PolylineOverlay, PolygonOverlay } from '@1amageek/mapkit';
+
+const MapWithOverlays = () => (
+  <Map>
+    <CircleOverlay
+      coordinate={{ latitude: 35.6812, longitude: 139.7671 }}
+      radius={1000}
+      options={{
+        strokeColor: "#FF0000",
+        lineWidth: 2,
+        fillColor: "#FF000033"
+      }}
+    />
+    <PolylineOverlay
+      points={[
+        { latitude: 35.6812, longitude: 139.7671 },
+        { latitude: 35.6813, longitude: 139.7672 }
+      ]}
+      options={{
+        strokeColor: "#0000FF",
+        lineWidth: 3
+      }}
+    />
+  </Map>
+);
 ```
 
-#### PolylineOverlay
+### Error Handling
+
+The library provides built-in error handling:
 
 ```tsx
-<PolylineOverlay
-  points={[
-    { latitude: number, longitude: number },
-    { latitude: number, longitude: number }
-  ]}
-  options={{
-    strokeColor: "#007AFF",
-    lineWidth: 2,
-  }}
-/>
+const MapComponent = () => (
+  <Map
+    onMapError={(error) => {
+      console.error('Map error:', error);
+    }}
+    errorComponent={<div>Failed to load map</div>}
+    loadingComponent={<div>Loading map...</div>}
+  />
+);
 ```
 
-## Error Handling
+## API Reference
 
-The library provides comprehensive error handling through the `onMapError` callback:
+### MapKitProvider Props
 
-```tsx
-<Map
-  onMapError={(error) => {
-    console.error('Map error:', error)
-    // Handle error appropriately
-  }}
->
-  {/* Map content */}
-</Map>
-```
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| fetchToken | () => Promise<MapKitTokenResponse> | Yes | Function to fetch MapKit JS token |
+| options | MapKitInitOptions | No | Initialization options |
+| onError | (error: MapKitError) => void | No | Error handler |
 
-## Types
+### Map Props
 
-The library includes full TypeScript support with types for all components and options:
-
-```tsx
-import type {
-  Location,
-  Region,
-  MapKitTokenResponse,
-  MarkerAnnotationProps,
-  CustomAnnotationProps
-} from '@1amageek/mapkit'
-```
+| Prop | Type | Required | Description |
+|------|------|----------|-------------|
+| id | string | No | Map container ID |
+| options | mapkit.MapConstructorOptions | No | Map configuration options |
+| location | Location | No | Center location |
+| region | Region | No | Map region with center and span |
+| onMapError | (error: Error \| MapKitError) => void | No | Error handler |
+| onAppear | (map: mapkit.Map) => void | No | Called when map is ready |
+| className | string | No | Additional CSS classes |
+| loadingComponent | ReactNode | No | Custom loading component |
+| errorComponent | ReactNode | No | Custom error component |
 
 ## Contributing
 
@@ -183,4 +194,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT © [Norikazu Muramoto](mailto:tmy0x3@icloud.com)
+This project is licensed under the MIT License - see the LICENSE file for details.
