@@ -61,6 +61,23 @@ Then use the Map component:
 ```tsx
 import { Map, MarkerAnnotation } from '@1amageek/mapkit';
 
+## Event Handling
+
+The library supports various events for annotations:
+
+### Annotation Events
+
+- `onSelect`: Triggered when an annotation is selected
+- `onDeselect`: Triggered when an annotation is deselected
+- `onDrag`: Triggered while an annotation is being dragged
+- `onDragStart`: Triggered when starting to drag an annotation
+- `onDragEnd`: Triggered when finishing dragging an annotation
+
+Example usage with events:
+
+```tsx
+import { Map, MarkerAnnotation } from '@1amageek/mapkit';
+
 const MapComponent = () => {
   return (
     <Map
@@ -93,7 +110,143 @@ const MapComponent = () => {
 };
 ```
 
-## Advanced Features
+## Event Types
+
+```typescript
+interface AnnotationEventHandlers {
+  onSelect?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDeselect?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDrag?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDragStart?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDragEnd?: (event: mapkit.EventBase<mapkit.Map>) => void;
+}
+```
+
+## Usage Examples
+
+### Basic Marker Annotation with Events
+
+```tsx
+<Map>
+  <MarkerAnnotation
+    coordinate={{
+      latitude: 35.6812,
+      longitude: 139.7671
+    }}
+    title="Tokyo Tower"
+    subtitle="Tourist Attraction"
+    draggable={true}
+    onSelect={(event) => {
+      // Event when user clicks/taps the annotation
+      const annotation = event.target;
+      console.log('Selected:', annotation.title);
+      console.log('At coordinate:', annotation.coordinate);
+    }}
+    onDrag={(event) => {
+      // Real-time coordinate updates during drag
+      console.log('Current position:', event.coordinate);
+    }}
+    onDragEnd={(event) => {
+      // Final location after drag ends
+      const { latitude, longitude } = event.coordinate;
+      console.log('Final position:', { latitude, longitude });
+    }}
+  />
+</Map>
+```
+
+### Custom Annotation with Complex Interaction
+
+```tsx
+<Map>
+  <CustomAnnotation
+    coordinate={{
+      latitude: 35.6812,
+      longitude: 139.7671
+    }}
+    draggable={true}
+    onSelect={(event) => {
+      // Access to DOM event and screen coordinates
+      console.log('Click position:', event.pointOnPage);
+      console.log('DOM event:', event.domEvent);
+    }}
+    callout={{
+      calloutContentForAnnotation: (annotation) => (
+        <div className="custom-callout">
+          <h3>{annotation.title}</h3>
+          <button onClick={() => handleCalloutAction(annotation)}>
+            Details
+          </button>
+        </div>
+      )
+    }}
+  >
+    <div className="custom-marker">
+      {/* Your custom marker content */}
+    </div>
+  </CustomAnnotation>
+</Map>
+```
+
+### Multiple Annotations with Shared Event Handler
+
+```tsx
+const MapWithAnnotations = () => {
+  const handleAnnotationSelect = (event: mapkit.EventBase<mapkit.Map>) => {
+    // Common handler for all annotations
+    const { title, data } = event.target;
+    console.log('Selected location:', title);
+    console.log('Custom data:', data);
+  };
+
+  return (
+    <Map>
+      {locations.map((location) => (
+        <MarkerAnnotation
+          key={location.id}
+          coordinate={location.coordinate}
+          title={location.name}
+          data={location.customData}
+          onSelect={handleAnnotationSelect}
+        />
+      ))}
+    </Map>
+  );
+};
+```
+
+### Image Annotation with Clustering
+
+```tsx
+<Map>
+  <ImageAnnotation
+    coordinate={{
+      latitude: 35.6812,
+      longitude: 139.7671
+    }}
+    url={{
+      1: "path/to/image.png",
+      2: "path/to/image@2x.png",
+      3: "path/to/image@3x.png"
+    }}
+    clusteringIdentifier="landmarks"
+    onSelect={(event) => {
+      if (event.target.memberAnnotations) {
+        // This is a cluster
+        console.log('Cluster size:', event.target.memberAnnotations.length);
+      } else {
+        // Single annotation
+        console.log('Selected image annotation');
+      }
+    }}
+  />
+</Map>
+```
+```
+
+These event handlers are available for all annotation types (MarkerAnnotation, ImageAnnotation, CustomAnnotation).
+
+# Advanced Features
 
 ### Custom Annotations
 
