@@ -10,7 +10,8 @@ import {
   isCustomAnnotationElement,
   isCircleOverlayElement,
   isPolylineOverlayElement,
-  isPolygonOverlayElement
+  isPolygonOverlayElement,
+  AnnotationEventHandlers
 } from "./annotations"
 
 export interface MapProps {
@@ -52,7 +53,6 @@ const Map = forwardRef(function Map(
   const mapRef = useRef<mapkit.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [mapError, setMapError] = useState<Error | MapKitError | null>(null)
-
   const childrenArray = React.Children.toArray(children)
 
   useEffect(() => {
@@ -149,11 +149,38 @@ const Map = forwardRef(function Map(
     }
   }, [isReady, location, region])
 
+  const annotationEventHandle = (annotation: mapkit.Annotation, handler: AnnotationEventHandlers) => {
+    const cleanupFns: (() => void)[] = [];
+    const { onSelect, onDeselect, onDrag, onDragStart, onDragEnd } = handler;
+  
+    if (onSelect) {
+      annotation.addEventListener("select", onSelect);
+      cleanupFns.push(() => annotation.removeEventListener("select", onSelect));
+    }
+    if (onDeselect) {
+      annotation.addEventListener("deselect", onDeselect);
+      cleanupFns.push(() => annotation.removeEventListener("deselect", onDeselect));
+    }
+    if (onDrag) {
+      annotation.addEventListener("dragging", onDrag);
+      cleanupFns.push(() => annotation.removeEventListener("dragging", onDrag));
+    }
+    if (onDragStart) {
+      annotation.addEventListener("drag-start", onDragStart);
+      cleanupFns.push(() => annotation.removeEventListener("drag-start", onDragStart));
+    }
+    if (onDragEnd) {
+      annotation.addEventListener("drag-end", onDragEnd);
+      cleanupFns.push(() => annotation.removeEventListener("drag-end", onDragEnd));
+    }
+    return () => cleanupFns.forEach(cleanup => cleanup());
+  };
+
   useEffect(() => {
     if (!isReady) return
     const map = mapRef.current
     if (!map) return
-
+    const cleanupFunctions: (() => void)[] = [];
     try {
       const currentAnnotations = new Set(map.annotations)
       const currentOverlays = new Set(map.overlays)
@@ -168,6 +195,8 @@ const Map = forwardRef(function Map(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
             options
           )
+          const cleanup = annotationEventHandle(annotation, child.props);
+          cleanupFunctions.push(cleanup);
           newAnnotations.push(annotation)
         }
 
@@ -177,6 +206,9 @@ const Map = forwardRef(function Map(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
             options
           )
+          annotationEventHandle(annotation, child.props)
+          const cleanup = annotationEventHandle(annotation, child.props);
+          cleanupFunctions.push(cleanup);
           newAnnotations.push(annotation)
         }
 
@@ -224,6 +256,8 @@ const Map = forwardRef(function Map(
               })
             }
           }
+          const cleanup = annotationEventHandle(annotation, child.props);
+          cleanupFunctions.push(cleanup);
           newAnnotations.push(annotation)
         }
 
@@ -284,6 +318,7 @@ const Map = forwardRef(function Map(
       }
 
       return () => {
+        cleanupFunctions.forEach(cleanup => cleanup());
         try {
           map.removeAnnotations(map.annotations)
           map.removeOverlays(map.overlays)

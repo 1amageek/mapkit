@@ -13,6 +13,14 @@ export interface Region {
   }
 }
 
+export interface AnnotationEventHandlers {
+  onSelect?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDeselect?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDrag?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDragStart?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onDragEnd?: (event: mapkit.EventBase<mapkit.Map>) => void;
+}
+
 export type AnnotationConstructorOptions = {
   title?: string
   subtitle?: string
@@ -44,7 +52,7 @@ export type AnnotationConstructorOptions = {
   clusteringIdentifier?: string
   place?: mapkit.Place
   id?: string
-}
+} & AnnotationEventHandlers
 
 export type MarkerAnnotationConstructorOptions = AnnotationConstructorOptions & {
   titleVisibility?: string
@@ -123,6 +131,12 @@ export function PolylineOverlay(props: PolylineOverlayProps) {
 
 export function PolygonOverlay(props: PolygonOverlayProps) {
   return null
+}
+
+export type AnyAnnotationProps = MarkerAnnotationProps | ImageAnnotationProps | CustomAnnotationProps;
+
+export function isAnnotationElement(element: React.ReactNode): element is React.ReactElement<AnyAnnotationProps> {
+  return isMarkerAnnotationElement(element) || isImageAnnotationElement(element) || isCustomAnnotationElement(element);
 }
 
 export function isMarkerAnnotationElement(element: React.ReactNode): element is React.ReactElement<MarkerAnnotationProps> {
