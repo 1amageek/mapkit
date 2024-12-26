@@ -60,6 +60,7 @@ Then use the Map component:
 
 ```tsx
 import { Map, MarkerAnnotation } from '@1amageek/mapkit';
+```
 
 ## Event Handling
 
