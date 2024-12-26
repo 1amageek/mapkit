@@ -20,7 +20,7 @@ export interface MapProps {
   location?: Location | null
   region?: Region | null
   onMapError?: (error: Error | MapKitError) => void
-  onMapReady?: (map: mapkit.Map) => void
+  onAppear?: (map: mapkit.Map) => void
   className?: string
   loadingComponent?: React.ReactNode
   errorComponent?: React.ReactNode
@@ -41,7 +41,7 @@ const Map = forwardRef(function Map(
     location,
     region,
     onMapError,
-    onMapReady,
+    onAppear,
     className = "",
     loadingComponent,
     errorComponent
@@ -99,7 +99,7 @@ const Map = forwardRef(function Map(
       })
 
       mapRef.current = map
-      onMapReady?.(map)
+      onAppear?.(map)
 
       return () => {
         if (mapRef.current) {
