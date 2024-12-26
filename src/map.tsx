@@ -59,7 +59,7 @@ const Map = forwardRef(function Map(
     const handleError = (error: Error | MapKitError) => {
       setMapError(error)
       onMapError?.(error)
-      
+
       if (mapRef.current) {
         try {
           mapRef.current.destroy()
@@ -122,9 +122,9 @@ const Map = forwardRef(function Map(
   }, [isReady, JSON.stringify(options)])
 
   useEffect(() => {
+    if (!isReady) return
     const map = mapRef.current
     if (!map) return
-
     try {
       if (location) {
         const coordinate = new window.mapkit.Coordinate(location.latitude, location.longitude)
@@ -147,9 +147,10 @@ const Map = forwardRef(function Map(
       setMapError(error)
       onMapError?.(error)
     }
-  }, [location, region])
+  }, [isReady, location, region])
 
   useEffect(() => {
+    if (!isReady) return
     const map = mapRef.current
     if (!map) return
 
@@ -274,7 +275,7 @@ const Map = forwardRef(function Map(
       })
 
       // Setup cluster handling
-      map.annotationForCluster = function(clusterAnnotation) {
+      map.annotationForCluster = function (clusterAnnotation) {
         const { memberAnnotations } = clusterAnnotation
         return new mapkit.MarkerAnnotation(clusterAnnotation.coordinate, {
           title: `(${memberAnnotations.length})`,
@@ -298,7 +299,7 @@ const Map = forwardRef(function Map(
       setMapError(error)
       onMapError?.(error)
     }
-  }, [childrenArray, annotationsData])
+  }, [isReady, childrenArray, annotationsData])
 
   if (isLoading) {
     return loadingComponent as React.ReactElement ?? <div>Loading map...</div>
@@ -325,6 +326,7 @@ const Map = forwardRef(function Map(
       }}
       id={id}
       className={`map ${className}`}
+      style={{ width: "100%", height: "100%" }}
       role="application"
       aria-label="Map"
     />
