@@ -4,7 +4,9 @@ export default defineConfig({
   entry: ['src/index.ts'],
   format: ['cjs', 'esm'],
   dts: true,
+  clean: true,
   minify: true,
   sourcemap: true,
   outDir: 'lib',
+  external: ["react", "react-dom"]
 });

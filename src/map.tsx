@@ -73,17 +73,21 @@ const Map = forwardRef(function Map(
     load(handleError)
   }, [load, onMapError])
 
+  function hasCoordinate(props: any): props is { coordinate: mapkit.Coordinate } {
+    return props && typeof props.coordinate === "object";
+  }
+
   const annotationsData = useMemo(() => {
     return childrenArray
       .map(child => {
-        if (React.isValidElement(child) && typeof child.type === "function") {
-          const { coordinate, ...rest } = child.props
-          return { coordinate }
+        if (React.isValidElement(child) && typeof child.type === "function" && hasCoordinate(child.props)) {
+          const { coordinate, ...rest } = child.props;
+          return { coordinate };
         }
-        return null
+        return null;
       })
-      .filter(Boolean)
-  }, [childrenArray])
+      .filter(Boolean) as Array<{ coordinate: mapkit.Coordinate }>;
+  }, [childrenArray]);
 
   useEffect(() => {
     if (!isReady || !containerRef.current) return
@@ -152,7 +156,7 @@ const Map = forwardRef(function Map(
   const annotationEventHandle = (annotation: mapkit.Annotation, handler: AnnotationEventHandlers) => {
     const cleanupFns: (() => void)[] = [];
     const { onSelect, onDeselect, onDrag, onDragStart, onDragEnd } = handler;
-  
+
     if (onSelect) {
       annotation.addEventListener("select", onSelect);
       cleanupFns.push(() => annotation.removeEventListener("select", onSelect));
