@@ -38,8 +38,8 @@ export interface MapKitProviderProps {
 }
 
 const DEFAULT_OPTIONS: Required<MapKitInitOptions> = {
-  language: 'en',
-  version: '5.x.x',
+  language: "en",
+  version: "5.x.x",
   libraries: [],
   tokenFetchRetries: 3,
   tokenFetchRetryDelay: 2000
@@ -81,7 +81,7 @@ export const MapKitProvider = ({
   const handleError = useCallback((error: unknown) => {
     const mapKitError = isMapKitError(error)
       ? error
-      : createMapKitError('UNKNOWN_ERROR', error instanceof Error ? error.message : undefined)
+      : createMapKitError("UNKNOWN_ERROR", error instanceof Error ? error.message : undefined)
 
     setError(mapKitError)
     onError?.(mapKitError)
@@ -98,7 +98,7 @@ export const MapKitProvider = ({
         return fetchTokenWithRetry(attempts - 1)
       }
       throw createMapKitError(
-        'TOKEN_ERROR',
+        "TOKEN_ERROR",
         err instanceof Error ? err.message : undefined
       )
     }
@@ -114,7 +114,7 @@ export const MapKitProvider = ({
 
       await new Promise<void>((resolve, reject) => {
         script.onload = () => resolve()
-        script.onerror = () => reject(createMapKitError('LOAD_ERROR'))
+        script.onerror = () => reject(createMapKitError("LOAD_ERROR"))
         document.head.appendChild(script)
       })
 
@@ -127,7 +127,7 @@ export const MapKitProvider = ({
           await new Promise<void>((resolve, reject) => {
             libraryScript.onload = () => resolve()
             libraryScript.onerror = () => reject(
-              createMapKitError('LOAD_ERROR', `Failed to load library: ${library}`)
+              createMapKitError("LOAD_ERROR", `Failed to load library: ${library}`)
             )
             document.head.appendChild(libraryScript)
           })
@@ -138,7 +138,7 @@ export const MapKitProvider = ({
         await new Promise(resolve => setTimeout(resolve, options.tokenFetchRetryDelay))
         return loadMapKitWithRetry(attempts - 1)
       }
-      throw isMapKitError(err) ? err : createMapKitError('UNKNOWN_ERROR')
+      throw isMapKitError(err) ? err : createMapKitError("UNKNOWN_ERROR")
     }
   }, [options.version, options.libraries, options.tokenFetchRetryDelay])
 
@@ -149,7 +149,7 @@ export const MapKitProvider = ({
 
   const initializeMapKit = useCallback(async () => {
     if (!window.mapkit) {
-      throw createMapKitError('NOT_LOADED')
+      throw createMapKitError("NOT_LOADED")
     }
 
     const currentTime = Math.floor(Date.now() / 1000)
@@ -164,7 +164,7 @@ export const MapKitProvider = ({
       if (shouldFetchNewToken) {
         const newTokenData = await fetchTokenWithRetry()
         if (!validateToken(newTokenData.token, newTokenData.expiresAt)) {
-          throw createMapKitError('TOKEN_ERROR', 'Invalid token data received')
+          throw createMapKitError("TOKEN_ERROR", "Invalid token data received")
         }
         token = newTokenData.token
         expiresAt = newTokenData.expiresAt
@@ -186,7 +186,7 @@ export const MapKitProvider = ({
           setTokenData(newTokenData)
         } catch (err) {
           handleError(
-            isMapKitError(err) ? err : createMapKitError('TOKEN_ERROR')
+            isMapKitError(err) ? err : createMapKitError("TOKEN_ERROR")
           )
         }
       }, refreshTimeout)
@@ -196,7 +196,7 @@ export const MapKitProvider = ({
     } catch (error) {
       throw isMapKitError(error)
         ? error
-        : createMapKitError('INIT_ERROR', error instanceof Error ? error.message : undefined)
+        : createMapKitError("INIT_ERROR", error instanceof Error ? error.message : undefined)
     }
   }, [
     tokenData,
@@ -221,7 +221,7 @@ export const MapKitProvider = ({
     } catch (err) {
       const mapKitError = isMapKitError(err)
         ? err
-        : createMapKitError('UNKNOWN_ERROR')
+        : createMapKitError("UNKNOWN_ERROR")
       handleError(mapKitError)
       onError?.(mapKitError)
     } finally {
@@ -260,8 +260,8 @@ export const useMapKit = () => {
   const context = useContext(MapKitContext)
   if (!context) {
     throw createMapKitError(
-      'CONTEXT_ERROR',
-      'useMapKit must be used within a MapKitProvider'
+      "CONTEXT_ERROR",
+      "useMapKit must be used within a MapKitProvider"
     )
   }
   return context

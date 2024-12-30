@@ -14,11 +14,11 @@ export interface Region {
 }
 
 export interface AnnotationEventHandlers {
-  onSelect?: (event: mapkit.EventBase<mapkit.Map>) => void;
-  onDeselect?: (event: mapkit.EventBase<mapkit.Map>) => void;
-  onDrag?: (event: mapkit.EventBase<mapkit.Map>) => void;
-  onDragStart?: (event: mapkit.EventBase<mapkit.Map>) => void;
-  onDragEnd?: (event: mapkit.EventBase<mapkit.Map>) => void;
+  onSelect?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
+  onDeselect?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
+  onDrag?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
+  onDragStart?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
+  onDragEnd?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
 }
 
 export type AnnotationConstructorOptions = {
