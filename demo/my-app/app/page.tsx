@@ -1,12 +1,10 @@
 "use client"
 
-import { findMap, Map } from "@1amageek/mapkit"
-import { useEffect } from "react";
+import { useMap, Map, MarkerAnnotation, useSearch } from "@1amageek/mapkit"
+import SearchBar from "./SearchBar";
 
 export default function Home() {
-
-  const map = findMap("target")
-
+  const map = useMap("target")
   const showLocations = () => {
     if (!map) return;
     const hotelLocations = [
@@ -32,8 +30,10 @@ export default function Home() {
     map.showItems(annotations, { animate: true });
   };
 
+  const { places, } = useSearch()
+
   return (
-    <main className="grid grid-cols-2 w-full h-full gap-2 p-4">
+    <main className="grid grid-cols-1 lg:grid-cols-2 w-full h-full gap-2 p-4">
       <div className="w-full h-96">
         <Map
           location={{
@@ -73,6 +73,26 @@ export default function Home() {
           >Current Location</button>
         </div>
       </div>
-    </main>
+      <div className="relative w-full h-96">
+        <Map
+          onChange={(map, annotations) => {
+            map.showItems(annotations, {
+              padding: new mapkit.Padding(24, 24, 24, 24)
+            })
+          }}
+        >
+          {places.map((place, index) =>
+            <MarkerAnnotation
+              key={index}
+              title={place.name}
+              coordinate={place.coordinate}
+            />
+          )}
+        </Map>
+        <div className="absolute flex w-full top-2 justify-start items-center left-2">
+          <SearchBar />
+        </div>
+      </div>
+    </main >
   );
 }

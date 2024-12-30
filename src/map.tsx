@@ -22,6 +22,7 @@ export interface MapProps {
   region?: Region | null
   onMapError?: (error: Error | MapKitError) => void
   onAppear?: (map: mapkit.Map) => void
+  onChange?: (map: mapkit.Map, newAnnotations: mapkit.Annotation[]) => void;
   className?: string
   loadingComponent?: React.ReactNode
   errorComponent?: React.ReactNode
@@ -43,6 +44,7 @@ const Map = forwardRef(function Map(
     region,
     onMapError,
     onAppear,
+    onChange,
     className = "",
     loadingComponent,
     errorComponent
@@ -53,7 +55,6 @@ const Map = forwardRef(function Map(
   const mapRef = useRef<mapkit.Map | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [mapError, setMapError] = useState<Error | MapKitError | null>(null)
-  const childrenArray = React.Children.toArray(children)
 
   useEffect(() => {
     const handleError = (error: Error | MapKitError) => {
@@ -64,7 +65,7 @@ const Map = forwardRef(function Map(
         try {
           mapRef.current.destroy()
         } catch (cleanupError) {
-          console.error('Error during map cleanup:', cleanupError)
+          console.error("Error during map cleanup:", cleanupError)
         }
         mapRef.current = null
       }
@@ -77,24 +78,22 @@ const Map = forwardRef(function Map(
     return props && typeof props.coordinate === "object";
   }
 
-  const annotationsData = useMemo(() => {
-    return childrenArray
-      .map(child => {
-        if (React.isValidElement(child) && typeof child.type === "function" && hasCoordinate(child.props)) {
-          const { coordinate, ...rest } = child.props;
-          return { coordinate };
-        }
-        return null;
-      })
-      .filter(Boolean) as Array<{ coordinate: mapkit.Coordinate }>;
-  }, [childrenArray]);
+  const annotationsData = React.Children.toArray(children)
+    .map(child => {
+      if (React.isValidElement(child) && typeof child.type === "function" && hasCoordinate(child.props)) {
+        const { coordinate, ...rest } = child.props;
+        return { longitude: coordinate.longitude, latitude: coordinate.latitude };
+      }
+      return null;
+    })
+    .filter(Boolean) as Array<Location>;
 
   useEffect(() => {
     if (!isReady || !containerRef.current) return
 
     try {
       if (!window.mapkit) {
-        throw createMapKitError('NOT_LOADED')
+        throw createMapKitError("NOT_LOADED")
       }
 
       const map = new window.mapkit.Map(containerRef.current, {
@@ -110,15 +109,15 @@ const Map = forwardRef(function Map(
           try {
             mapRef.current.destroy()
           } catch (error) {
-            console.error('Error destroying map:', error)
+            console.error("Error destroying map:", error)
           }
           mapRef.current = null
         }
       }
     } catch (err) {
       const error = isMapKitError(err) ? err : createMapKitError(
-        'INIT_ERROR',
-        err instanceof Error ? err.message : 'Failed to initialize map'
+        "INIT_ERROR",
+        err instanceof Error ? err.message : "Failed to initialize map"
       )
       setMapError(error)
       onMapError?.(error)
@@ -145,8 +144,8 @@ const Map = forwardRef(function Map(
       }
     } catch (err) {
       const error = isMapKitError(err) ? err : createMapKitError(
-        'UNKNOWN_ERROR',
-        'Failed to update map location/region'
+        "UNKNOWN_ERROR",
+        "Failed to update map location/region"
       )
       setMapError(error)
       onMapError?.(error)
@@ -192,7 +191,7 @@ const Map = forwardRef(function Map(
       const newAnnotations: mapkit.Annotation[] = []
       const newOverlays: mapkit.Overlay[] = []
 
-      childrenArray.forEach((child) => {
+      React.Children.toArray(children).forEach((child) => {
         if (isMarkerAnnotationElement(child)) {
           const { coordinate, callout, ...options } = child.props
           const annotation = new mapkit.MarkerAnnotation(
@@ -321,24 +320,26 @@ const Map = forwardRef(function Map(
         })
       }
 
+      onChange?.(map, newAnnotations);
+
       return () => {
         cleanupFunctions.forEach(cleanup => cleanup());
         try {
           map.removeAnnotations(map.annotations)
           map.removeOverlays(map.overlays)
         } catch (error) {
-          console.error('Error cleaning up annotations/overlays:', error)
+          console.error("Error cleaning up annotations/overlays:", error)
         }
       }
     } catch (err) {
       const error = isMapKitError(err) ? err : createMapKitError(
-        'UNKNOWN_ERROR',
-        'Failed to update map annotations/overlays'
+        "UNKNOWN_ERROR",
+        "Failed to update map annotations/overlays"
       )
       setMapError(error)
       onMapError?.(error)
     }
-  }, [isReady, childrenArray, annotationsData])
+  }, [isReady, JSON.stringify(annotationsData)])
 
   if (isLoading) {
     return loadingComponent as React.ReactElement ?? <div>Loading map...</div>
@@ -347,7 +348,7 @@ const Map = forwardRef(function Map(
   if (mapKitError || mapError) {
     return errorComponent as React.ReactElement ?? (
       <div className="map-error">
-        {(mapKitError || mapError)?.message || 'An error occurred while loading the map'}
+        {(mapKitError || mapError)?.message || "An error occurred while loading the map"}
       </div>
     )
   }

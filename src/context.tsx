@@ -50,19 +50,19 @@ const defaultContextValue: MapKitContextProps = {
   isReady: false,
   isLoading: false,
   error: null,
-  load: async () => {},
-  reset: () => {}
+  load: async () => { },
+  reset: () => { }
 }
 
 export const MapKitContext = createContext<MapKitContextProps>(defaultContextValue)
 
 const TOKEN_BUFFER_TIME = 60 // seconds before token expiry to refresh
 
-export const MapKitProvider = ({ 
-  children, 
-  fetchToken, 
-  options: userOptions, 
-  onError 
+export const MapKitProvider = ({
+  children,
+  fetchToken,
+  options: userOptions,
+  onError
 }: MapKitProviderProps) => {
   const options: Required<MapKitInitOptions> = {
     ...DEFAULT_OPTIONS,
@@ -82,7 +82,7 @@ export const MapKitProvider = ({
     const mapKitError = isMapKitError(error)
       ? error
       : createMapKitError('UNKNOWN_ERROR', error instanceof Error ? error.message : undefined)
-    
+
     setError(mapKitError)
     onError?.(mapKitError)
   }, [onError])
@@ -111,7 +111,7 @@ export const MapKitProvider = ({
       const script = document.createElement("script")
       script.src = `https://cdn.apple-mapkit.com/mk/${options.version}/mapkit.js`
       script.crossOrigin = "anonymous"
-      
+
       await new Promise<void>((resolve, reject) => {
         script.onload = () => resolve()
         script.onerror = () => reject(createMapKitError('LOAD_ERROR'))
@@ -153,7 +153,7 @@ export const MapKitProvider = ({
     }
 
     const currentTime = Math.floor(Date.now() / 1000)
-    const shouldFetchNewToken = !tokenData.token || 
+    const shouldFetchNewToken = !tokenData.token ||
       !tokenData.expiresAt ||
       tokenData.expiresAt - currentTime < TOKEN_BUFFER_TIME
 
@@ -211,7 +211,7 @@ export const MapKitProvider = ({
     loadOptions?: MapKitInitOptions
   ) => {
     if (isLoading || initialized) return
-    
+
     setIsLoading(true)
     setError(null)
 
@@ -267,8 +267,9 @@ export const useMapKit = () => {
   return context
 }
 
-export const findMap = (id: string): mapkit.Map | null => {
-  if (!window.mapkit) return null
+export const useMap = (id: string): mapkit.Map | null => {
+  const { isReady } = useMapKit()
+  if (!isReady) return null
   return window.mapkit.maps.find(
     (map: mapkit.Map) => map.element.parentElement?.id === id
   ) ?? null

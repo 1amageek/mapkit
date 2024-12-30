@@ -1,6 +1,6 @@
 "use client"
 
-import { MapKitProvider } from "@1amageek/mapkit"
+import { MapKitProvider, SearchProvider } from "@1amageek/mapkit"
 import "./globals.css";
 
 
@@ -10,9 +10,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja">
       <body className="w-full min-h-screen">
-        <MapKitProvider fetchToken={async () => {
+        <MapKitProvider options={{ language: "ja" }} fetchToken={async () => {
           const response = await fetch("/api/apple/token", {
             method: "GET",
             cache: "force-cache"
@@ -22,7 +22,9 @@ export default function RootLayout({
           }
           return await response.json()
         }}>
-          <>{children}</>
+          <SearchProvider options={{ language: "ja" }}>
+            <>{children}</>
+          </SearchProvider>
         </MapKitProvider>
       </body>
     </html>

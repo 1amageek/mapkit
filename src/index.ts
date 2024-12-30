@@ -11,7 +11,7 @@ export {
   MapKitContext,
   MapKitProvider,
   useMapKit,
-  findMap,
+  useMap,
   type MapKitContextProps,
   type MapKitInitOptions,
   type MapKitTokenResponse,
@@ -38,6 +38,7 @@ export {
   type PolygonOverlayProps
 } from "./annotations"
 
+export * from "./search";
 // Export Map component and its types
 import Map from "./map"
 export { Map }
