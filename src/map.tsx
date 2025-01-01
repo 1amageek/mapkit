@@ -238,6 +238,9 @@ const Map = forwardRef(function Map(
     const map = mapRef.current;
     if (!map) return;
     try {
+      if (map.annotations.length) {
+        map.removeAnnotations(map.annotations)
+      }
       if (location) {
         const coordinate = new window.mapkit.Coordinate(
           location.latitude,
