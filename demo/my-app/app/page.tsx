@@ -93,6 +93,18 @@ export default function Home() {
           <SearchBar />
         </div>
       </div>
+      <div className="relative w-full h-96">
+        <Map
+          onAppear={(map) => {
+            const coordinate = new mapkit.Coordinate(35.1815, 136.9066)
+            const annotation = new mapkit.MarkerAnnotation(coordinate)
+            map.showItems([annotation], { animate: true })
+          }}
+          onRegionChangeEnd={(event) => {
+            console.log(event.target.visibleMapRect)
+          }}
+        />
+      </div>
     </main >
   );
 }

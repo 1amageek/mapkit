@@ -14,7 +14,6 @@ export interface MapKitContextProps {
   isLoading: boolean
   error: MapKitError | null
   load: (onError?: (error: MapKitError) => void, options?: MapKitInitOptions) => Promise<void>
-  reset: () => void
 }
 
 export interface TokenData {
@@ -51,7 +50,6 @@ const defaultContextValue: MapKitContextProps = {
   isLoading: false,
   error: null,
   load: async () => { },
-  reset: () => { }
 }
 
 export const MapKitContext = createContext<MapKitContextProps>(defaultContextValue)
@@ -229,16 +227,14 @@ export const MapKitProvider = ({
     }
   }, [isLoading, initialized, loadMapKitWithRetry, initializeMapKit, handleError])
 
-  const reset = useCallback(() => {
-    setInitialized(false)
-    setMapkit(null)
-    setError(null)
-    setTokenData({ token: null, expiresAt: null })
-  }, [])
-
   useEffect(() => {
-    return () => reset()
-  }, [reset])
+    return () => {
+      setInitialized(false)
+      setMapkit(null)
+      setError(null)
+      setTokenData({ token: null, expiresAt: null })
+    }
+  }, [])
 
   const contextValue = useMemo<MapKitContextProps>(() => ({
     mapkit,
@@ -246,8 +242,7 @@ export const MapKitProvider = ({
     isLoading,
     error,
     load,
-    reset
-  }), [mapkit, initialized, isLoading, error, load, reset])
+  }), [mapkit, initialized, isLoading, error, load])
 
   return (
     <MapKitContext.Provider value={contextValue}>
