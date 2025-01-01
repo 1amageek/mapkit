@@ -11,6 +11,7 @@ A React wrapper for Apple's MapKit JS, providing a seamless way to integrate App
 - 🔒 Automatic token management and refresh
 - 🎯 Built-in error handling
 - 💫 Smooth animations and transitions
+- 🖱️ Comprehensive event handling for map interactions, annotations, and user location
 
 ## Installation
 
@@ -64,15 +65,34 @@ import { Map, MarkerAnnotation } from '@1amageek/mapkit';
 
 ## Event Handling
 
-The library supports various events for annotations:
+The library supports a wide range of events for the map, annotations, and user location:
+
+### Map Events
+The `Map` component emits various events related to map display and interaction:
+- `onRegionChangeStart`: Triggered when the map region starts changing.
+- `onRegionChangeEnd`: Triggered when the map region finishes changing.
+- `onRotationStart`: Triggered when the map starts rotating.
+- `onRotationEnd`: Triggered when the map finishes rotating.
+- `onScrollStart`: Triggered when the map starts scrolling.
+- `onScrollEnd`: Triggered when the map finishes scrolling.
+- `onZoomStart`: Triggered when the map starts zooming.
+- `onZoomEnd`: Triggered when the map finishes zooming.
+- `onMapTypeChange`: Triggered when the map type changes (e.g., from satellite to standard).
+- `onSingleTap`: Triggered when the map is tapped once.
+- `onDoubleTap`: Triggered when the map is double-tapped.
+- `onLongPress`: Triggered when the map is long-pressed.
 
 ### Annotation Events
 
 - `onSelect`: Triggered when an annotation is selected
 - `onDeselect`: Triggered when an annotation is deselected
-- `onDrag`: Triggered while an annotation is being dragged
+- `onDrag`: Triggered while an annotation is being dragged, providing real-time updates.
 - `onDragStart`: Triggered when starting to drag an annotation
 - `onDragEnd`: Triggered when finishing dragging an annotation
+
+### User Location Events
+- `onUserLocationChange`: Triggered when the user's location changes. Provides the new coordinate and timestamp.
+- `onUserLocationError`: Triggered when an error occurs while trying to retrieve the user's location.
 
 Example usage with events:
 
@@ -80,12 +100,19 @@ Example usage with events:
 import { Map, MarkerAnnotation } from '@1amageek/mapkit';
 
 const MapComponent = () => {
+
   return (
     <Map
       id="my-map"
       options={{
         showsUserLocation: true,
         showsCompass: "Adaptive",
+      }}
+      onRegionChangeStart={(event: mapkit.EventBase<mapkit.Map>) => {
+        console.log("Region change start", event);
+      }}
+      onRegionChangeEnd={(event: mapkit.EventBase<mapkit.Map>) => {
+        console.log("Region change end", event);
       }}
       region={{
         center: {
@@ -243,9 +270,8 @@ const MapWithAnnotations = () => {
   />
 </Map>
 ```
-```
 
-These event handlers are available for all annotation types (MarkerAnnotation, ImageAnnotation, CustomAnnotation).
+These event handlers are available for all annotation types (`MarkerAnnotation`, `ImageAnnotation`, `CustomAnnotation`).
 
 # Advanced Features
 
@@ -338,9 +364,24 @@ const MapComponent = () => (
 | region | Region | No | Map region with center and span |
 | onMapError | (error: Error \| MapKitError) => void | No | Error handler |
 | onAppear | (map: mapkit.Map) => void | No | Called when map is ready |
+| onChange | (map: mapkit.Map, newAnnotations: mapkit.Annotation[]) => void | No | Called when annotations/overlays change |
 | className | string | No | Additional CSS classes |
 | loadingComponent | ReactNode | No | Custom loading component |
 | errorComponent | ReactNode | No | Custom error component |
+| onRegionChangeStart | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map region starts changing. |
+| onRegionChangeEnd | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map region finishes changing. |
+| onRotationStart | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map starts rotating. |
+| onRotationEnd | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map finishes rotating. |
+| onScrollStart | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map starts scrolling. |
+| onScrollEnd | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map finishes scrolling. |
+| onZoomStart | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map starts zooming. |
+| onZoomEnd | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map finishes zooming. |
+| onMapTypeChange | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map type changes. |
+| onUserLocationChange | (event: mapkit.EventBase<mapkit.Map> & { coordinate: mapkit.Coordinate; timestamp: Date }) => void | No | Triggered when the user's location changes. |
+| onUserLocationError | (event: mapkit.EventBase<mapkit.Map> & { code: number; message: string }) => void | No | Triggered when an error occurs while trying to retrieve the user's location. |
+| onSingleTap | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map is tapped once. |
+| onDoubleTap | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map is double-tapped. |
+| onLongPress | (event: mapkit.EventBase<mapkit.Map>) => void | No | Triggered when the map is long-pressed. |
 
 ## Contributing
 
