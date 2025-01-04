@@ -112,11 +112,23 @@ const Map = forwardRef(function Map(
     return props && typeof props.coordinate === "object";
   }
 
+  function hasSelected(props: any): props is { selected: boolean } {
+    return props && typeof props.selected === "boolean";
+  }
+
+  function hasTitle(props: any): props is { title: string } {
+    return props && typeof props.title === "string";
+  }
+
+  function hasAnnotationProps(props: any): props is { coordinate: mapkit.Coordinate, selected: boolean, title: string } {
+    return hasCoordinate(props) && hasSelected(props) && hasTitle(props);
+  }
+
   const annotationsData = React.Children.toArray(children)
     .map(child => {
-      if (React.isValidElement(child) && typeof child.type === "function" && hasCoordinate(child.props)) {
-        const { coordinate, ...rest } = child.props;
-        return { longitude: coordinate.longitude, latitude: coordinate.latitude };
+      if (React.isValidElement(child) && typeof child.type === "function" && hasAnnotationProps(child.props)) {
+        const { title, coordinate, ...rest } = child.props;
+        return { longitude: coordinate.longitude, latitude: coordinate.latitude, title };
       }
       return null;
     })
@@ -277,29 +289,31 @@ const Map = forwardRef(function Map(
 
   const annotationEventHandle = (annotation: mapkit.Annotation, handler: AnnotationEventHandlers) => {
     const cleanupFns: (() => void)[] = [];
+    if (!mapRef.current) return () => cleanupFns.forEach(cleanup => cleanup());
+    const map = mapRef.current
     const { onSelect, onDeselect, onDrag, onDragStart, onDragEnd } = handler;
     if (onSelect) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onSelect(event, annotation);
-      annotation.addEventListener("select", wrappedHandler);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onSelect(map, annotation);
+      annotation.addEventListener("select", wrappedHandler, annotation);
       cleanupFns.push(() => annotation.removeEventListener("select", wrappedHandler));
     }
     if (onDeselect) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDeselect(event, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDeselect(map, annotation);
       annotation.addEventListener("deselect", wrappedHandler);
       cleanupFns.push(() => annotation.removeEventListener("deselect", wrappedHandler));
     }
     if (onDrag) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDrag(event, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDrag(map, annotation);
       annotation.addEventListener("dragging", wrappedHandler);
       cleanupFns.push(() => annotation.removeEventListener("dragging", wrappedHandler));
     }
     if (onDragStart) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDragStart(event, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDragStart(map, annotation);
       annotation.addEventListener("drag-start", wrappedHandler);
       cleanupFns.push(() => annotation.removeEventListener("drag-start", wrappedHandler));
     }
     if (onDragEnd) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDragEnd(event, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDragEnd(map, annotation);
       annotation.addEventListener("drag-end", wrappedHandler);
       cleanupFns.push(() => annotation.removeEventListener("drag-end", wrappedHandler));
     }
@@ -313,18 +327,15 @@ const Map = forwardRef(function Map(
     if (!map) return;
     const cleanupFunctions: (() => void)[] = [];
     try {
-      const currentAnnotations = new Set(map.annotations);
-      const currentOverlays = new Set(map.overlays);
-
       const newAnnotations: mapkit.Annotation[] = [];
       const newOverlays: mapkit.Overlay[] = [];
 
       React.Children.toArray(children).forEach((child) => {
         if (isMarkerAnnotationElement(child)) {
-          const { coordinate, callout, ...options } = child.props;
+          const { coordinate, callout, padding, ...options } = child.props;
           const annotation = new mapkit.MarkerAnnotation(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-            options
+            { ...options, padding: padding ? new mapkit.Padding(padding) : undefined }
           );
           const cleanup = annotationEventHandle(annotation, child.props);
           cleanupFunctions.push(cleanup);
@@ -332,10 +343,10 @@ const Map = forwardRef(function Map(
         }
 
         if (isImageAnnotationElement(child)) {
-          const { coordinate, callout, ...options } = child.props;
+          const { coordinate, callout, padding, ...options } = child.props;
           const annotation = new mapkit.ImageAnnotation(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-            options
+            { ...options, padding: padding ? new mapkit.Padding(padding) : undefined }
           );
           annotationEventHandle(annotation, child.props);
           const cleanup = annotationEventHandle(annotation, child.props);
@@ -344,7 +355,7 @@ const Map = forwardRef(function Map(
         }
 
         if (isCustomAnnotationElement(child)) {
-          const { coordinate, children, callout, ...options } = child.props;
+          const { coordinate, children, callout, padding, ...options } = child.props;
           const annotation = new mapkit.Annotation(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
             (coordinate: mapkit.Coordinate) => {
@@ -353,7 +364,7 @@ const Map = forwardRef(function Map(
               root.render(React.createElement(React.Fragment, null, children));
               return element;
             },
-            options
+            { ...options }
           );
           if (callout) {
             annotation.callout = {
@@ -411,33 +422,8 @@ const Map = forwardRef(function Map(
         }
       });
 
-      // Remove annotations not in new set
-      map.annotations.forEach(annotation => {
-        if (!newAnnotations.includes(annotation)) {
-          map.removeAnnotation(annotation);
-        }
-      });
-
-      // Remove overlays not in new set
-      currentOverlays.forEach(overlay => {
-        if (!newOverlays.includes(overlay)) {
-          map.removeOverlay(overlay);
-        }
-      });
-
-      // Add new annotations
-      newAnnotations.forEach(annotation => {
-        if (!currentAnnotations.has(annotation)) {
-          map.addAnnotation(annotation);
-        }
-      });
-
-      // Add new overlays
-      newOverlays.forEach(overlay => {
-        if (!currentOverlays.has(overlay)) {
-          map.addOverlay(overlay);
-        }
-      });
+      map.addAnnotations(newAnnotations)
+      map.addOverlays(newOverlays)
 
       // Setup cluster handling
       map.annotationForCluster = function (clusterAnnotation) {

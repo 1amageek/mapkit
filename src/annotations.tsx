@@ -5,6 +5,25 @@ export interface Location {
   longitude: number
 }
 
+export interface Padding {
+  /**
+   * The amount of padding, in CSS pixels, to inset the map from the bottom edge.
+   */
+  bottom?: number | undefined;
+  /**
+   * The amount of padding, in CSS pixels, to inset the map from the left edge.
+   */
+  left?: number | undefined;
+  /**
+   * The amount of padding, in CSS pixels, to inset the map from the right edge.
+   */
+  right?: number | undefined;
+  /**
+   * The amount of padding, in CSS pixels, to inset the map from the top edge.
+   */
+  top?: number | undefined;
+}
+
 export interface Region {
   center: Location
   span: {
@@ -14,11 +33,11 @@ export interface Region {
 }
 
 export interface AnnotationEventHandlers {
-  onSelect?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
-  onDeselect?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
-  onDrag?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
-  onDragStart?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
-  onDragEnd?: (event: mapkit.EventBase<mapkit.Map>, annotation: mapkit.Annotation) => void;
+  onSelect?: (event: mapkit.Map, annotation: mapkit.Annotation) => void;
+  onDeselect?: (event: mapkit.Map, annotation: mapkit.Annotation) => void;
+  onDrag?: (event: mapkit.Map, annotation: mapkit.Annotation) => void;
+  onDragStart?: (event: mapkit.Map, annotation: mapkit.Annotation) => void;
+  onDragEnd?: (event: mapkit.Map, annotation: mapkit.Annotation) => void;
 }
 
 export type AnnotationConstructorOptions = {
@@ -48,7 +67,7 @@ export type AnnotationConstructorOptions = {
   size?: { width: number; height: number }
   displayPriority?: number
   collisionMode?: string
-  padding?: mapkit.Padding
+  padding?: Padding
   clusteringIdentifier?: string
   place?: mapkit.Place
   id?: string
