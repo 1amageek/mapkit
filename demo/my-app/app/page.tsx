@@ -1,10 +1,10 @@
 "use client"
 
-import { useMap, Map, useSearch, CustomAnnotation } from "@1amageek/mapkit"
+import { useMap, Map, useSearch, CustomAnnotation, CustomAnnotationProps } from "@1amageek/mapkit"
 import SearchBar from "./SearchBar";
 import { useRef, useState } from "react";
 
-type HotelLocation = {
+type Place = {
   id: string;
   latitude: number;
   longitude: number;
@@ -12,7 +12,7 @@ type HotelLocation = {
   description: string;
 };
 
-const hotelLocations: HotelLocation[] = [
+const hotelLocations: Place[] = [
   { id: "0", latitude: 35.1815, longitude: 136.9066, title: "Hotel Nagoya Station", description: "名古屋駅近くの便利なホテル" }, // 名古屋駅
   { id: "1", latitude: 35.1709, longitude: 136.8815, title: "Hotel Nagoya Castle", description: "名古屋城の美しい景色を楽しめるホテル" },  // 名古屋城
   { id: "2", latitude: 35.1543, longitude: 136.9139, title: "Hotel Osu", description: "大須商店街に近い活気あるホテル" },            // 大須
@@ -25,13 +25,19 @@ const hotelLocations: HotelLocation[] = [
   { id: "9", latitude: 35.1032, longitude: 136.9083, title: "Hotel Higashi Betsuin", description: "東別院に近い歴史的なホテル" } // 東別院
 ];
 
+const restaurantLocations: Place[] = [
+  { id: "10", latitude: 34.6978, longitude: 135.4947, title: "道頓堀 たこ焼き", description: "大阪名物、道頓堀のたこ焼き店" },
+  { id: "11", latitude: 34.7024, longitude: 135.4959, title: "新世界 串かつ", description: "大阪の味、新世界の串かつ店" },
+  { id: "12", latitude: 34.6718, longitude: 135.5104, title: "なんば グルメ", description: "なんば周辺の多様なレストラン" },
+  { id: "13", latitude: 34.6863, longitude: 135.5234, title: "大阪城近くのレストラン", description: "大阪城公園近くの食事処" },
+  { id: "14", latitude: 34.6937, longitude: 135.5023, title: "梅田 グルメ", description: "梅田駅周辺のレストラン街" }
+];
+
 export default function Home() {
   const map = useMap("target")
   const mapRef = useRef<HTMLDivElement>(null)
-  const [selected, setSelected] = useState<string | null>(null)
   const showLocations = () => {
     if (!map) return;
-
     const annotations = hotelLocations.map((location) => {
       const coordinate = new mapkit.Coordinate(location.latitude, location.longitude);
       const annotation = new mapkit.MarkerAnnotation(coordinate, {
@@ -56,17 +62,30 @@ export default function Home() {
       </div>
       <div className="w-full h-96">
         <Map
-          region={{
-            center: {
-              latitude: 34.6937,
-              longitude: 135.5023,
-            },
-            span: {
-              latitudeDelta: 0.1,
-              longitudeDelta: 0.1,
-            },
+          onChange={(map, annotations) => {
+            map.showItems(annotations, {
+              padding: new mapkit.Padding({ top: 20, bottom: 20 })
+            })
           }}
-        />
+        >
+          {restaurantLocations.map((location, index) => {
+            const titleSize = location.title.length * 12 + 8;
+            return (
+              <CustomAnnotation
+                key={index}
+                title={location.title}
+                coordinate={{
+                  latitude: location.latitude,
+                  longitude: location.longitude
+                }}
+                size={{ width: titleSize, height: 28 }}
+                draggable={false}
+              >
+                <ExpandableAnnotation place={location} />
+              </CustomAnnotation>
+            )
+          })}
+        </Map>
       </div>
       <div className="relative w-full h-96">
         <Map
@@ -78,9 +97,7 @@ export default function Home() {
           }}
         >
           {hotelLocations.map((location, index) => {
-
             const titleSize = location.title.length * 7 + 8;
-
             return (
               <CustomAnnotation
                 key={index}
@@ -186,3 +203,23 @@ export default function Home() {
     </main >
   );
 }
+
+const ExpandableAnnotation = ({ place }: { place: Place }) => {
+  const [isHovered, setIsHovered] = useState(false);
+  const handleMouseEnter = () => setIsHovered(true);
+  const handleMouseLeave = () => setIsHovered(false);
+
+  return (
+    <div
+      className="flex justify-center items-center"
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="bg-white drop-shadow-md border-gray-500 border-2 min-w-3 min-h-3 rounded-md grow-0 shrink">
+        {isHovered && (
+          <span className="p-2 text-sm text-gray-700">{place.title}</span>
+        )}
+      </div>
+    </div>
+  );
+};
