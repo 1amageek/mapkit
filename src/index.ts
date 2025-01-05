@@ -27,7 +27,7 @@ export {
   CircleOverlay,
   PolylineOverlay,
   PolygonOverlay,
-  type Location,
+  type Coordinate,
   type Region,
   type AnnotationConstructorOptions,
   type MarkerAnnotationProps,
