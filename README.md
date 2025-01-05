@@ -360,7 +360,7 @@ const MapComponent = () => (
 |------|------|----------|-------------|
 | id | string | No | Map container ID |
 | options | mapkit.MapConstructorOptions | No | Map configuration options |
-| location | Location | No | Center location |
+| location | Coodinate | No | Center Coodinate |
 | region | Region | No | Map region with center and span |
 | onMapError | (error: Error \| MapKitError) => void | No | Error handler |
 | onAppear | (map: mapkit.Map) => void | No | Called when map is ready |

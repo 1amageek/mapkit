@@ -9,7 +9,7 @@ import { useMapKit } from "./context";
 import { createRoot } from "react-dom/client";
 import { MapKitError, createMapKitError, isMapKitError } from "./errors";
 import {
-  Location,
+  Coordinate,
   Region,
   isMarkerAnnotationElement,
   isImageAnnotationElement,
@@ -24,7 +24,7 @@ export interface MapProps {
   id?: string;
   options?: mapkit.MapConstructorOptions;
   children?: React.ReactNode;
-  location?: Location | null;
+  location?: Coordinate | null;
   region?: Region | null;
   onMapError?: (error: Error | MapKitError) => void;
   onAppear?: (map: mapkit.Map) => void;
@@ -132,7 +132,7 @@ const Map = forwardRef(function Map(
       }
       return null;
     })
-    .filter(Boolean) as Array<Location>;
+    .filter(Boolean) as Array<Coordinate>;
 
   useEffect(() => {
     if (!isReady || !containerRef.current) return;
@@ -405,19 +405,19 @@ const Map = forwardRef(function Map(
 
         if (isCircleOverlayElement(child)) {
           const { coordinate, radius, options } = child.props;
-          const overlay = new mapkit.CircleOverlay(coordinate, radius, options);
+          const overlay = new mapkit.CircleOverlay(new mapkit.Coordinate(coordinate.latitude, coordinate.longitude), radius, options);
           newOverlays.push(overlay);
         }
 
         if (isPolylineOverlayElement(child)) {
           const { points, options } = child.props;
-          const overlay = new mapkit.PolylineOverlay(points, options);
+          const overlay = new mapkit.PolylineOverlay(points.map(point => new mapkit.Coordinate(point.latitude, point.longitude)), options);
           newOverlays.push(overlay);
         }
 
         if (isPolygonOverlayElement(child)) {
           const { points, options } = child.props;
-          const overlay = new mapkit.PolygonOverlay(points, options);
+          const overlay = new mapkit.PolygonOverlay(points.map(point => new mapkit.Coordinate(point.latitude, point.longitude)), options);
           newOverlays.push(overlay);
         }
       });

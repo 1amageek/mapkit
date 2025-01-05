@@ -1,6 +1,6 @@
 import React, { ReactNode } from "react"
 
-export interface Location {
+export interface Coordinate {
   latitude: number
   longitude: number
 }
@@ -25,7 +25,7 @@ export interface Padding {
 }
 
 export interface Region {
-  center: Location
+  center: Coordinate
   span: {
     latitudeDelta: number
     longitudeDelta: number
@@ -92,7 +92,7 @@ export type MarkerAnnotationConstructorOptions = AnnotationConstructorOptions & 
 }
 
 export type MarkerAnnotationProps = MarkerAnnotationConstructorOptions & {
-  coordinate: Location
+  coordinate: Coordinate
 }
 
 export type ImageAnnotationConstructorOptions = AnnotationConstructorOptions & {
@@ -104,27 +104,27 @@ export type ImageAnnotationConstructorOptions = AnnotationConstructorOptions & {
 }
 
 export type ImageAnnotationProps = ImageAnnotationConstructorOptions & {
-  coordinate: Location
+  coordinate: Coordinate
 }
 
 export type CustomAnnotationProps = AnnotationConstructorOptions & {
-  coordinate: Location
+  coordinate: Coordinate
   children: ReactNode
 }
 
 export type CircleOverlayProps = { 
-  coordinate: mapkit.Coordinate
+  coordinate: Coordinate
   radius: number
   options?: mapkit.StylesOverlayOptions 
 }
 
 export type PolylineOverlayProps = { 
-  points: mapkit.Coordinate[]
+  points: Coordinate[]
   options?: mapkit.StylesOverlayOptions 
 }
 
 export type PolygonOverlayProps = { 
-  points: mapkit.Coordinate[]
+  points: Coordinate[]
   options?: mapkit.StylesOverlayOptions 
 }
 
