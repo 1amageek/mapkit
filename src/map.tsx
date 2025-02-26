@@ -293,28 +293,28 @@ const Map = forwardRef(function Map(
     const map = mapRef.current
     const { onSelect, onDeselect, onDrag, onDragStart, onDragEnd } = handler;
     if (onSelect) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onSelect(map, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onSelect(map, annotation);
       annotation.addEventListener("select", wrappedHandler, annotation);
       cleanupFns.push(() => annotation.removeEventListener("select", wrappedHandler));
     }
     if (onDeselect) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDeselect(map, annotation);
-      annotation.addEventListener("deselect", wrappedHandler);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDeselect(map, annotation);
+      annotation.addEventListener("deselect", wrappedHandler, annotation);
       cleanupFns.push(() => annotation.removeEventListener("deselect", wrappedHandler));
     }
     if (onDrag) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDrag(map, annotation);
-      annotation.addEventListener("dragging", wrappedHandler);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDrag(map, annotation);
+      annotation.addEventListener("dragging", wrappedHandler, annotation);
       cleanupFns.push(() => annotation.removeEventListener("dragging", wrappedHandler));
     }
     if (onDragStart) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDragStart(map, annotation);
-      annotation.addEventListener("drag-start", wrappedHandler);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDragStart(map, annotation);
+      annotation.addEventListener("drag-start", wrappedHandler, annotation);
       cleanupFns.push(() => annotation.removeEventListener("drag-start", wrappedHandler));
     }
     if (onDragEnd) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Annotation>) => onDragEnd(map, annotation);
-      annotation.addEventListener("drag-end", wrappedHandler);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDragEnd(map, annotation);
+      annotation.addEventListener("drag-end", wrappedHandler, annotation);
       cleanupFns.push(() => annotation.removeEventListener("drag-end", wrappedHandler));
     }
     return () => cleanupFns.forEach(cleanup => cleanup());
