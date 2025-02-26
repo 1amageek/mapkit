@@ -123,16 +123,16 @@ const Map = forwardRef(function Map(
   function hasAnnotationProps(props: any): props is { coordinate: mapkit.Coordinate, selected: boolean, title: string } {
     return hasCoordinate(props) && hasSelected(props) && hasTitle(props);
   }
-
-  const annotationsData = React.Children.toArray(children)
+  const Children = isReady ? React.Children.toArray(children) : []
+  const annotationsData = Children
     .map(child => {
       if (React.isValidElement(child) && typeof child.type === "function" && hasAnnotationProps(child.props)) {
-        const { title, coordinate, ...rest } = child.props;
+        const { title, coordinate, } = child.props;
         return { longitude: coordinate.longitude, latitude: coordinate.latitude, title };
       }
       return null;
     })
-    .filter(Boolean) as Array<Coordinate>;
+    .filter(Boolean) as Array<Coordinate>
 
   useEffect(() => {
     if (!isReady || !containerRef.current) return;
@@ -330,7 +330,7 @@ const Map = forwardRef(function Map(
       const newAnnotations: mapkit.Annotation[] = [];
       const newOverlays: mapkit.Overlay[] = [];
 
-      React.Children.toArray(children).forEach((child) => {
+      Children.forEach((child) => {
         if (isMarkerAnnotationElement(child)) {
           const { coordinate, callout, padding, ...options } = child.props;
           const annotation = new mapkit.MarkerAnnotation(
