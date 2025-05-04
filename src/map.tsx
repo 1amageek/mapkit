@@ -41,8 +41,15 @@ export interface MapProps {
   onZoomStart?: (event: mapkit.EventBase<mapkit.Map>) => void;
   onZoomEnd?: (event: mapkit.EventBase<mapkit.Map>) => void;
   onMapTypeChange?: (event: mapkit.EventBase<mapkit.Map>) => void;
-  onUserLocationChange?: (event: mapkit.EventBase<mapkit.Map> & { coordinate: mapkit.Coordinate; timestamp: Date }) => void;
-  onUserLocationError?: (event: mapkit.EventBase<mapkit.Map> & { code: number; message: string }) => void;
+  onUserLocationChange?: (
+    event: mapkit.EventBase<mapkit.Map> & {
+      coordinate: mapkit.Coordinate;
+      timestamp: Date;
+    }
+  ) => void;
+  onUserLocationError?: (
+    event: mapkit.EventBase<mapkit.Map> & { code: number; message: string }
+  ) => void;
   onSingleTap?: (event: mapkit.EventBase<mapkit.Map>) => void;
   onDoubleTap?: (event: mapkit.EventBase<mapkit.Map>) => void;
   onLongPress?: (event: mapkit.EventBase<mapkit.Map>) => void;
@@ -108,7 +115,9 @@ const Map = forwardRef(function Map(
     load(handleError);
   }, [load, onMapError]);
 
-  function hasCoordinate(props: any): props is { coordinate: mapkit.Coordinate } {
+  function hasCoordinate(
+    props: any
+  ): props is { coordinate: mapkit.Coordinate } {
     return props && typeof props.coordinate === "object";
   }
 
@@ -120,19 +129,31 @@ const Map = forwardRef(function Map(
     return props && typeof props.title === "string";
   }
 
-  function hasAnnotationProps(props: any): props is { coordinate: mapkit.Coordinate, selected: boolean, title: string } {
+  function hasAnnotationProps(
+    props: any
+  ): props is {
+    coordinate: mapkit.Coordinate;
+    selected: boolean;
+    title: string;
+  } {
     return hasCoordinate(props) && hasSelected(props) && hasTitle(props);
   }
-  const Children = isReady ? React.Children.toArray(children) : []
-  const annotationsData = Children
-    .map(child => {
-      if (React.isValidElement(child) && typeof child.type === "function" && hasAnnotationProps(child.props)) {
-        const { title, coordinate, } = child.props;
-        return { longitude: coordinate.longitude, latitude: coordinate.latitude, title };
-      }
-      return null;
-    })
-    .filter(Boolean) as Array<Coordinate>
+  const Children = isReady ? React.Children.toArray(children) : [];
+  const annotationsData = Children.map((child) => {
+    if (
+      React.isValidElement(child) &&
+      typeof child.type === "function" &&
+      hasAnnotationProps(child.props)
+    ) {
+      const { title, coordinate } = child.props;
+      return {
+        longitude: coordinate.longitude,
+        latitude: coordinate.latitude,
+        title,
+      };
+    }
+    return null;
+  }).filter(Boolean) as Array<Coordinate>;
 
   useEffect(() => {
     if (!isReady || !containerRef.current) return;
@@ -153,74 +174,124 @@ const Map = forwardRef(function Map(
       // Map Event Handlers
       const mapEventCleanupFunctions: (() => void)[] = [];
       if (onRegionChangeStart) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onRegionChangeStart(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onRegionChangeStart(event);
         map.addEventListener("region-change-start", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("region-change-start", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("region-change-start", handler)
+        );
       }
       if (onRegionChangeEnd) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onRegionChangeEnd(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onRegionChangeEnd(event);
         map.addEventListener("region-change-end", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("region-change-end", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("region-change-end", handler)
+        );
       }
       if (onRotationStart) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onRotationStart(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onRotationStart(event);
         map.addEventListener("rotation-start", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("rotation-start", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("rotation-start", handler)
+        );
       }
       if (onRotationEnd) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onRotationEnd(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onRotationEnd(event);
         map.addEventListener("rotation-end", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("rotation-end", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("rotation-end", handler)
+        );
       }
       if (onScrollStart) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onScrollStart(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onScrollStart(event);
         map.addEventListener("scroll-start", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("scroll-start", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("scroll-start", handler)
+        );
       }
       if (onScrollEnd) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onScrollEnd(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onScrollEnd(event);
         map.addEventListener("scroll-end", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("scroll-end", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("scroll-end", handler)
+        );
       }
       if (onZoomStart) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onZoomStart(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onZoomStart(event);
         map.addEventListener("zoom-start", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("zoom-start", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("zoom-start", handler)
+        );
       }
       if (onZoomEnd) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onZoomEnd(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onZoomEnd(event);
         map.addEventListener("zoom-end", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("zoom-end", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("zoom-end", handler)
+        );
       }
       if (onMapTypeChange) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onMapTypeChange(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onMapTypeChange(event);
         map.addEventListener("map-type-change", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("map-type-change", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("map-type-change", handler)
+        );
       }
       if (onUserLocationChange) {
-        const handler = (event: mapkit.EventBase<mapkit.Map> & { coordinate: mapkit.Coordinate; timestamp: Date }) => onUserLocationChange(event);
+        const handler = (
+          event: mapkit.EventBase<mapkit.Map> & {
+            coordinate: mapkit.Coordinate;
+            timestamp: Date;
+          }
+        ) => onUserLocationChange(event);
         map.addEventListener("user-location-change", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("user-location-change", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("user-location-change", handler)
+        );
       }
       if (onUserLocationError) {
-        const handler = (event: mapkit.EventBase<mapkit.Map> & { code: number; message: string }) => onUserLocationError(event);
+        const handler = (
+          event: mapkit.EventBase<mapkit.Map> & {
+            code: number;
+            message: string;
+          }
+        ) => onUserLocationError(event);
         map.addEventListener("user-location-error", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("user-location-error", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("user-location-error", handler)
+        );
       }
       if (onSingleTap) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onSingleTap(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onSingleTap(event);
         map.addEventListener("single-tap", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("single-tap", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("single-tap", handler)
+        );
       }
       if (onDoubleTap) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onDoubleTap(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onDoubleTap(event);
         map.addEventListener("double-tap", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("double-tap", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("double-tap", handler)
+        );
       }
       if (onLongPress) {
-        const handler = (event: mapkit.EventBase<mapkit.Map>) => onLongPress(event);
+        const handler = (event: mapkit.EventBase<mapkit.Map>) =>
+          onLongPress(event);
         map.addEventListener("long-press", handler);
-        mapEventCleanupFunctions.push(() => map.removeEventListener("long-press", handler));
+        mapEventCleanupFunctions.push(() =>
+          map.removeEventListener("long-press", handler)
+        );
       }
       return () => {
         if (mapRef.current) {
@@ -231,15 +302,15 @@ const Map = forwardRef(function Map(
           }
           mapRef.current = null;
         }
-        mapEventCleanupFunctions.forEach(cleanup => cleanup());
-      }
+        mapEventCleanupFunctions.forEach((cleanup) => cleanup());
+      };
     } catch (err) {
       const error = isMapKitError(err)
         ? err
         : createMapKitError(
-          "INIT_ERROR",
-          err instanceof Error ? err.message : "Failed to initialize map"
-        );
+            "INIT_ERROR",
+            err instanceof Error ? err.message : "Failed to initialize map"
+          );
       setMapError(error);
       onMapError?.(error);
     }
@@ -251,7 +322,7 @@ const Map = forwardRef(function Map(
     if (!map) return;
     try {
       if (map.annotations.length) {
-        map.removeAnnotations(map.annotations)
+        map.removeAnnotations(map.annotations);
       }
       if (location) {
         const coordinate = new window.mapkit.Coordinate(
@@ -279,47 +350,65 @@ const Map = forwardRef(function Map(
       const error = isMapKitError(err)
         ? err
         : createMapKitError(
-          "UNKNOWN_ERROR",
-          "Failed to update map location/region"
-        );
+            "UNKNOWN_ERROR",
+            "Failed to update map location/region"
+          );
       setMapError(error);
       onMapError?.(error);
     }
   }, [isReady, location, region]);
 
-  const annotationEventHandle = (annotation: mapkit.Annotation, handler: AnnotationEventHandlers) => {
+  const annotationEventHandle = (
+    annotation: mapkit.Annotation,
+    handler: AnnotationEventHandlers
+  ) => {
     const cleanupFns: (() => void)[] = [];
-    if (!mapRef.current) return () => cleanupFns.forEach(cleanup => cleanup());
-    const map = mapRef.current
+    if (!mapRef.current)
+      return () => cleanupFns.forEach((cleanup) => cleanup());
+    const map = mapRef.current;
     const { onSelect, onDeselect, onDrag, onDragStart, onDragEnd } = handler;
     if (onSelect) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onSelect(map, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) =>
+        onSelect(map, annotation);
       annotation.addEventListener("select", wrappedHandler, annotation);
-      cleanupFns.push(() => annotation.removeEventListener("select", wrappedHandler));
+      cleanupFns.push(() =>
+        annotation.removeEventListener("select", wrappedHandler)
+      );
     }
     if (onDeselect) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDeselect(map, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) =>
+        onDeselect(map, annotation);
       annotation.addEventListener("deselect", wrappedHandler, annotation);
-      cleanupFns.push(() => annotation.removeEventListener("deselect", wrappedHandler));
+      cleanupFns.push(() =>
+        annotation.removeEventListener("deselect", wrappedHandler)
+      );
     }
     if (onDrag) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDrag(map, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) =>
+        onDrag(map, annotation);
       annotation.addEventListener("dragging", wrappedHandler, annotation);
-      cleanupFns.push(() => annotation.removeEventListener("dragging", wrappedHandler));
+      cleanupFns.push(() =>
+        annotation.removeEventListener("dragging", wrappedHandler)
+      );
     }
     if (onDragStart) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDragStart(map, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) =>
+        onDragStart(map, annotation);
       annotation.addEventListener("drag-start", wrappedHandler, annotation);
-      cleanupFns.push(() => annotation.removeEventListener("drag-start", wrappedHandler));
+      cleanupFns.push(() =>
+        annotation.removeEventListener("drag-start", wrappedHandler)
+      );
     }
     if (onDragEnd) {
-      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) => onDragEnd(map, annotation);
+      const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) =>
+        onDragEnd(map, annotation);
       annotation.addEventListener("drag-end", wrappedHandler, annotation);
-      cleanupFns.push(() => annotation.removeEventListener("drag-end", wrappedHandler));
+      cleanupFns.push(() =>
+        annotation.removeEventListener("drag-end", wrappedHandler)
+      );
     }
-    return () => cleanupFns.forEach(cleanup => cleanup());
+    return () => cleanupFns.forEach((cleanup) => cleanup());
   };
-
 
   useEffect(() => {
     if (!isReady) return;
@@ -335,7 +424,10 @@ const Map = forwardRef(function Map(
           const { coordinate, callout, padding, ...options } = child.props;
           const annotation = new mapkit.MarkerAnnotation(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-            { ...options, padding: padding ? new mapkit.Padding(padding) : undefined }
+            {
+              ...options,
+              padding: padding ? new mapkit.Padding(padding) : undefined,
+            }
           );
           const cleanup = annotationEventHandle(annotation, child.props);
           cleanupFunctions.push(cleanup);
@@ -346,7 +438,10 @@ const Map = forwardRef(function Map(
           const { coordinate, callout, padding, ...options } = child.props;
           const annotation = new mapkit.ImageAnnotation(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
-            { ...options, padding: padding ? new mapkit.Padding(padding) : undefined }
+            {
+              ...options,
+              padding: padding ? new mapkit.Padding(padding) : undefined,
+            }
           );
           annotationEventHandle(annotation, child.props);
           const cleanup = annotationEventHandle(annotation, child.props);
@@ -355,7 +450,8 @@ const Map = forwardRef(function Map(
         }
 
         if (isCustomAnnotationElement(child)) {
-          const { coordinate, children, callout, padding, ...options } = child.props;
+          const { coordinate, children, callout, padding, ...options } =
+            child.props;
           const annotation = new mapkit.Annotation(
             new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
             (coordinate: mapkit.Coordinate) => {
@@ -368,34 +464,54 @@ const Map = forwardRef(function Map(
           );
           if (callout) {
             annotation.callout = {
-              calloutAnchorOffsetForAnnotation: callout.calloutAnchorOffsetForAnnotation,
-              calloutShouldAppearForAnnotation: callout.calloutShouldAppearForAnnotation,
-              calloutShouldAnimateForAnnotation: callout.calloutShouldAnimateForAnnotation,
-              calloutAppearanceAnimationForAnnotation: callout.calloutAppearanceAnimationForAnnotation,
-              calloutContentForAnnotation: callout.calloutContentForAnnotation && ((mapAnnotation) => {
-                const element = document.createElement("div");
-                const root = createRoot(element);
-                root.render(callout.calloutContentForAnnotation!(mapAnnotation));
-                return element;
-              }),
-              calloutElementForAnnotation: callout.calloutElementForAnnotation && ((mapAnnotation) => {
-                const element = document.createElement("div");
-                const root = createRoot(element);
-                root.render(callout.calloutElementForAnnotation!(mapAnnotation));
-                return element;
-              }),
-              calloutLeftAccessoryForAnnotation: callout.calloutLeftAccessoryForAnnotation && ((mapAnnotation) => {
-                const element = document.createElement("div");
-                const root = createRoot(element);
-                root.render(callout.calloutLeftAccessoryForAnnotation!(mapAnnotation));
-                return element;
-              }),
-              calloutRightAccessoryForAnnotation: callout.calloutRightAccessoryForAnnotation && ((mapAnnotation) => {
-                const element = document.createElement("div");
-                const root = createRoot(element);
-                root.render(callout.calloutRightAccessoryForAnnotation!(mapAnnotation));
-                return element;
-              })
+              calloutAnchorOffsetForAnnotation:
+                callout.calloutAnchorOffsetForAnnotation,
+              calloutShouldAppearForAnnotation:
+                callout.calloutShouldAppearForAnnotation,
+              calloutShouldAnimateForAnnotation:
+                callout.calloutShouldAnimateForAnnotation,
+              calloutAppearanceAnimationForAnnotation:
+                callout.calloutAppearanceAnimationForAnnotation,
+              calloutContentForAnnotation:
+                callout.calloutContentForAnnotation &&
+                ((mapAnnotation) => {
+                  const element = document.createElement("div");
+                  const root = createRoot(element);
+                  root.render(
+                    callout.calloutContentForAnnotation!(mapAnnotation)
+                  );
+                  return element;
+                }),
+              calloutElementForAnnotation:
+                callout.calloutElementForAnnotation &&
+                ((mapAnnotation) => {
+                  const element = document.createElement("div");
+                  const root = createRoot(element);
+                  root.render(
+                    callout.calloutElementForAnnotation!(mapAnnotation)
+                  );
+                  return element;
+                }),
+              calloutLeftAccessoryForAnnotation:
+                callout.calloutLeftAccessoryForAnnotation &&
+                ((mapAnnotation) => {
+                  const element = document.createElement("div");
+                  const root = createRoot(element);
+                  root.render(
+                    callout.calloutLeftAccessoryForAnnotation!(mapAnnotation)
+                  );
+                  return element;
+                }),
+              calloutRightAccessoryForAnnotation:
+                callout.calloutRightAccessoryForAnnotation &&
+                ((mapAnnotation) => {
+                  const element = document.createElement("div");
+                  const root = createRoot(element);
+                  root.render(
+                    callout.calloutRightAccessoryForAnnotation!(mapAnnotation)
+                  );
+                  return element;
+                }),
             };
           }
           const cleanup = annotationEventHandle(annotation, child.props);
@@ -405,39 +521,53 @@ const Map = forwardRef(function Map(
 
         if (isCircleOverlayElement(child)) {
           const { coordinate, radius, options } = child.props;
-          const overlay = new mapkit.CircleOverlay(new mapkit.Coordinate(coordinate.latitude, coordinate.longitude), radius, options);
+          const overlay = new mapkit.CircleOverlay(
+            new mapkit.Coordinate(coordinate.latitude, coordinate.longitude),
+            radius,
+            options
+          );
           newOverlays.push(overlay);
         }
 
         if (isPolylineOverlayElement(child)) {
           const { points, options } = child.props;
-          const overlay = new mapkit.PolylineOverlay(points.map(point => new mapkit.Coordinate(point.latitude, point.longitude)), options);
+          const overlay = new mapkit.PolylineOverlay(
+            points.map(
+              (point) => new mapkit.Coordinate(point.latitude, point.longitude)
+            ),
+            options
+          );
           newOverlays.push(overlay);
         }
 
         if (isPolygonOverlayElement(child)) {
           const { points, options } = child.props;
-          const overlay = new mapkit.PolygonOverlay(points.map(point => new mapkit.Coordinate(point.latitude, point.longitude)), options);
+          const overlay = new mapkit.PolygonOverlay(
+            points.map(
+              (point) => new mapkit.Coordinate(point.latitude, point.longitude)
+            ),
+            options
+          );
           newOverlays.push(overlay);
         }
       });
 
-      map.addAnnotations(newAnnotations)
-      map.addOverlays(newOverlays)
+      map.addAnnotations(newAnnotations);
+      map.addOverlays(newOverlays);
 
       // Setup cluster handling
       map.annotationForCluster = function (clusterAnnotation) {
         const { memberAnnotations } = clusterAnnotation;
         return new mapkit.MarkerAnnotation(clusterAnnotation.coordinate, {
           title: `(${memberAnnotations.length})`,
-          glyphText: memberAnnotations.length.toString()
+          glyphText: memberAnnotations.length.toString(),
         });
       };
 
       onChange?.(map, newAnnotations);
 
       return () => {
-        cleanupFunctions.forEach(cleanup => cleanup());
+        cleanupFunctions.forEach((cleanup) => cleanup());
         try {
           map.removeAnnotations(map.annotations);
           map.removeOverlays(map.overlays);
@@ -449,25 +579,37 @@ const Map = forwardRef(function Map(
       const error = isMapKitError(err)
         ? err
         : createMapKitError(
-          "UNKNOWN_ERROR",
-          "Failed to update map annotations/overlays"
-        );
+            "UNKNOWN_ERROR",
+            "Failed to update map annotations/overlays"
+          );
       setMapError(error);
       onMapError?.(error);
     }
   }, [isReady, children]);
 
-
   if (isLoading) {
-    return loadingComponent as React.ReactElement ?? <div>Loading map...</div>;
+    return (
+      (loadingComponent as React.ReactElement) ?? (
+        <div style={{ 
+          width: "100%", 
+          height: "100%",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          fontSize: "0.75rem",
+        }}>Loading map...</div>
+      )
+    );
   }
 
   if (mapKitError || mapError) {
-    return errorComponent as React.ReactElement ?? (
-      <div className="map-error">
-        {(mapKitError || mapError)?.message ||
-          "An error occurred while loading the map"}
-      </div>
+    return (
+      (errorComponent as React.ReactElement) ?? (
+        <div className="map-error">
+          {(mapKitError || mapError)?.message ||
+            "An error occurred while loading the map"}
+        </div>
+      )
     );
   }
 
