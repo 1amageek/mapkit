@@ -51,8 +51,8 @@ packages:
   '@1amageek/mapkit@file:../..':
     resolution: {directory: ../.., type: directory}
     peerDependencies:
-      react: ^18.0.0
-      react-dom: ^18.0.0
+      react: '>=18.0.0'
+      react-dom: '>=18.0.0'
 
   '@alloc/quick-lru@5.2.0':
     resolution: {integrity: sha512-UrcABB+4bUrFABwbluTIBErXwvbsU/V7TZWfmbgJfbkwiBuziS9gxdODUyuiecfdGQ85jglMW6juS3+z5TsKLw==}

@@ -2,7 +2,7 @@
 
 import { useMap, Map, useSearch, CustomAnnotation, CustomAnnotationProps } from "@1amageek/mapkit"
 import SearchBar from "./SearchBar";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Place = {
   id: string;
@@ -49,7 +49,14 @@ export default function Home() {
     map.showItems(annotations, { animate: true });
   };
 
+  const [locations, setLocations] = useState<Place[]>([])
   const { places, } = useSearch()
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLocations(hotelLocations)
+    }, 1000)
+  }, [])
 
   return (
     <main className="grid grid-cols-1 lg:grid-cols-2 w-full h-full gap-2 p-2">
@@ -96,7 +103,7 @@ export default function Home() {
             })
           }}
         >
-          {hotelLocations.map((location, index) => {
+          {locations.map((location, index) => {
             const titleSize = location.title.length * 7 + 8;
             return (
               <CustomAnnotation

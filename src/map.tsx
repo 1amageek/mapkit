@@ -455,7 +455,7 @@ const Map = forwardRef(function Map(
       setMapError(error);
       onMapError?.(error);
     }
-  }, [isReady, JSON.stringify(annotationsData)]);
+  }, [isReady, children]);
 
 
   if (isLoading) {
