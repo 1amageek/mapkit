@@ -117,27 +117,7 @@ export default function Home() {
                 callout={{
                   calloutShouldAppearForAnnotation: () => true,
                   calloutAnchorOffsetForAnnotation: (annotation, size) => {
-                    const map = annotation.map!
-                    const domPoint = map.convertCoordinateToPointOnPage(annotation.coordinate)
-                    const mapElement = mapRef.current!;
-                    const mapRect = mapElement.getBoundingClientRect();
-                    const scrollX = window.scrollX ?? 0;
-                    const scrollY = window.scrollY ?? 0;
-                    const localPoint = {
-                      x: domPoint.x - (mapRect.left + scrollX),
-                      y: domPoint.y - (mapRect.top + scrollY),
-                    };
-                    type Position = "top" | "middle" | "bottom";
-                    const mapHeight = mapRect.height;
-                    const annotationPosition = localPoint.y / (mapHeight / 3);
-                    const position: Position = annotationPosition < 1 ? "top" : annotationPosition < 2 ? "middle" : "bottom";
-                    let y = 0
-                    switch (position) {
-                      case "top": y = -36; break;
-                      case "middle": y = 90; break;
-                      case "bottom": y = 8 + 180; break;
-                    }
-                    return new DOMPoint(90, y)
+                    return new DOMPoint(0, 0)
                   },
                   calloutElementForAnnotation: (annotation) => {
                     return (

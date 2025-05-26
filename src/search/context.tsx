@@ -10,7 +10,7 @@ import {
 } from "react";
 
 import useDebounce from "./debounce";
-import { useMapKit } from "../context";
+import { useMapKit } from "../context/mapkit-context";
 
 type SearchConstructorOptions = mapkit.SearchConstructorOptions
 type SearchOptions = mapkit.SearchOptions

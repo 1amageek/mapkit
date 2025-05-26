@@ -1,71 +1,71 @@
-// Export error types and utilities
-export {
-  type MapKitError,
-  type MapKitErrorCode,
-  createMapKitError,
-  isMapKitError
-} from "./errors"
+// src/index.ts - 統合されたエントリポイント
 
-// Export context, provider, and related types
+// ===== TYPE EXPORTS =====
+export type * from './types';
+
+// ===== UTILITY EXPORTS =====
 export {
-  MapKitContext,
+  createMapKitError,
+  isMapKitError,
+  MapKitErrorBoundary
+} from './utils/errors';
+
+export {
+  isValidCoordinate,
+  isValidRegion,
+  isValidPadding
+} from './utils/validation';
+
+export {
+  isAnnotationElement,
+  isMarkerAnnotationElement,
+  isImageAnnotationElement,
+  isCustomAnnotationElement,
+  isCircleOverlayElement,
+  isPolylineOverlayElement,
+  isPolygonOverlayElement
+} from './utils/type-guards';
+
+export {
+  CleanupManager,
+  ReactRootManager
+} from './utils/memory-management';
+
+// ===== CONTEXT EXPORTS =====
+export {
   MapKitProvider,
   useMapKit,
-  useMap,
-  type MapKitContextProps,
-  type MapKitInitOptions,
-  type MapKitTokenResponse,
-  type MapKitProviderProps,
-  type TokenData
-} from "./context"
+  useMap
+} from './context/mapkit-context';
 
-// Export annotations and overlays
+// ===== COMPONENT EXPORTS =====
 export {
   MarkerAnnotation,
   ImageAnnotation,
   CustomAnnotation,
   CircleOverlay,
   PolylineOverlay,
-  PolygonOverlay,
-  type Coordinate,
-  type Region,
-  type AnnotationConstructorOptions,
-  type MarkerAnnotationProps,
-  type ImageAnnotationProps,
-  type CustomAnnotationProps,
-  type CircleOverlayProps,
-  type PolylineOverlayProps,
-  type PolygonOverlayProps
-} from "./annotations"
+  PolygonOverlay
+} from './components';
 
-// Export MapKit constants (safe to use before MapKit JS loads)
+export { default as Map } from './components/Map';
+
+// ===== MANAGER EXPORTS =====
 export {
-  FeatureVisibility,
-  MapTypes,
-  ColorSchemes,
-  Distances,
-  DisplayPriority,
-  CollisionMode,
-  Transport,
-  LoadPriorities,
-  getMapKitFeatureVisibility,
-  getMapKitMapType,
-  getMapKitColorScheme,
-  getMapKitDistance,
-  getMapKitDisplayPriority,
-  getMapKitCollisionMode,
-  type FeatureVisibilityType,
-  type MapTypesType,
-  type ColorSchemesType,
-  type DistancesType,
-  type DisplayPriorityType,
-  type CollisionModeType,
-  type TransportType,
-  type LoadPrioritiesType
-} from "./constants"
+  AnnotationManager,
+  useAnnotationManager
+} from './managers/annotation-manager';
 
-export * from "./search";
-// Export Map component and its types
-import Map from "./map"
-export { Map }
-export type { MapProps } from "./map"
+export {
+  OverlayManager,
+  useOverlayManager
+} from './managers/overlay-manager';
+
+// ===== CONSTANTS EXPORTS =====
+export * from './constants';
+
+// ===== SEARCH EXPORTS =====
+export {
+  SearchProvider,
+  useSearch
+} from './search';

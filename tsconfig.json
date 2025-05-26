@@ -1,15 +1,12 @@
 {
   "compilerOptions": {
     "target": "es5",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "outDir": "lib",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
+    "downlevelIteration": true,
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "forceConsistentCasingInFileNames": true,
@@ -21,9 +18,7 @@
     "noEmit": false,
     "jsx": "react-jsx"
   },
-  "include": [
-    "src"
-  ],
+  "include": ["src"],
   "publishConfig": {
     "access": "public"
   }

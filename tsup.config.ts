@@ -8,5 +8,6 @@ export default defineConfig({
   minify: true,
   sourcemap: true,
   outDir: 'lib',
+  target: 'es2017',
   external: ["react", "react-dom"]
 });
