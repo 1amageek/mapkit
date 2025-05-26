@@ -19,6 +19,17 @@ import {
   isPolygonOverlayElement,
   AnnotationEventHandlers,
 } from "./annotations";
+import { 
+  FeatureVisibility, 
+  getMapKitFeatureVisibility,
+  getMapKitMapType,
+  getMapKitColorScheme,
+  getMapKitDistance,
+  type FeatureVisibilityType,
+  type MapTypesType,
+  type ColorSchemesType,
+  type DistancesType
+} from "./constants";
 
 export interface MapProps {
   id?: string;
@@ -55,17 +66,18 @@ export interface MapProps {
   onLongPress?: (event: mapkit.EventBase<mapkit.Map>) => void;
 }
 
-const DEFAULT_MAP_OPTIONS: mapkit.MapConstructorOptions = {
+// MapKit JSに依存しないデフォルトオプション
+const getDefaultMapOptions = (): mapkit.MapConstructorOptions => ({
   isScrollEnabled: true,
   showsUserLocation: true,
-  showsCompass: "Adaptive",
+  showsCompass: getMapKitFeatureVisibility(FeatureVisibility.Adaptive),
   showsZoomControl: true,
-};
+});
 
 const Map = forwardRef(function Map(
   {
     id,
-    options = DEFAULT_MAP_OPTIONS,
+    options,
     children,
     location,
     region,
@@ -96,6 +108,7 @@ const Map = forwardRef(function Map(
   const mapRef = useRef<mapkit.Map | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [mapError, setMapError] = useState<Error | MapKitError | null>(null);
+  const cleanupFunctionsRef = useRef<(() => void)[]>([]);
 
   useEffect(() => {
     const handleError = (error: Error | MapKitError) => {
@@ -104,6 +117,16 @@ const Map = forwardRef(function Map(
 
       if (mapRef.current) {
         try {
+          // クリーンアップ関数を実行
+          cleanupFunctionsRef.current.forEach(cleanup => {
+            try {
+              cleanup();
+            } catch (cleanupError) {
+              console.error("Error during cleanup:", cleanupError);
+            }
+          });
+          cleanupFunctionsRef.current = [];
+          
           mapRef.current.destroy();
         } catch (cleanupError) {
           console.error("Error during map cleanup:", cleanupError);
@@ -138,6 +161,7 @@ const Map = forwardRef(function Map(
   } {
     return hasCoordinate(props) && hasSelected(props) && hasTitle(props);
   }
+  
   const Children = isReady ? React.Children.toArray(children) : [];
   const annotationsData = Children.map((child) => {
     if (
@@ -155,6 +179,33 @@ const Map = forwardRef(function Map(
     return null;
   }).filter(Boolean) as Array<Coordinate>;
 
+  // MapKit定数の変換を行うヘルパー関数
+  const convertMapOptions = (options: mapkit.MapConstructorOptions): mapkit.MapConstructorOptions => {
+    const converted = { ...options };
+    
+    // showsCompassの値を変換
+    if (converted.showsCompass && typeof converted.showsCompass === 'string') {
+      converted.showsCompass = getMapKitFeatureVisibility(converted.showsCompass as FeatureVisibilityType);
+    }
+    
+    // showsScaleの値を変換
+    if (converted.showsScale && typeof converted.showsScale === 'string') {
+      converted.showsScale = getMapKitFeatureVisibility(converted.showsScale as FeatureVisibilityType);
+    }
+    
+    // mapTypeの値を変換
+    if (converted.mapType && typeof converted.mapType === 'string') {
+      converted.mapType = getMapKitMapType(converted.mapType as MapTypesType);
+    }
+    
+    // colorSchemeの値を変換
+    if (converted.colorScheme && typeof converted.colorScheme === 'string') {
+      converted.colorScheme = getMapKitColorScheme(converted.colorScheme as ColorSchemesType);
+    }
+    
+    return converted;
+  };
+
   useEffect(() => {
     if (!isReady || !containerRef.current) return;
 
@@ -163,16 +214,21 @@ const Map = forwardRef(function Map(
         throw createMapKitError("NOT_LOADED");
       }
 
-      const map = new window.mapkit.Map(containerRef.current, {
-        ...DEFAULT_MAP_OPTIONS,
-        ...options,
-      });
+      // デフォルトオプションを実行時に取得し、ユーザーオプションをマージ
+      const defaultOptions = getDefaultMapOptions();
+      const mergedOptions = { ...defaultOptions, ...options };
+      
+      // MapKit定数の変換を実行時に行う
+      const safeOptions = convertMapOptions(mergedOptions);
+
+      const map = new window.mapkit.Map(containerRef.current, safeOptions);
 
       mapRef.current = map;
       onAppear?.(map);
 
       // Map Event Handlers
       const mapEventCleanupFunctions: (() => void)[] = [];
+      
       if (onRegionChangeStart) {
         const handler = (event: mapkit.EventBase<mapkit.Map>) =>
           onRegionChangeStart(event);
@@ -293,6 +349,10 @@ const Map = forwardRef(function Map(
           map.removeEventListener("long-press", handler)
         );
       }
+
+      // クリーンアップ関数を保存
+      cleanupFunctionsRef.current.push(...mapEventCleanupFunctions);
+
       return () => {
         if (mapRef.current) {
           try {
@@ -304,6 +364,7 @@ const Map = forwardRef(function Map(
         }
         mapEventCleanupFunctions.forEach((cleanup) => cleanup());
       };
+      
     } catch (err) {
       const error = isMapKitError(err)
         ? err
@@ -320,10 +381,12 @@ const Map = forwardRef(function Map(
     if (!isReady) return;
     const map = mapRef.current;
     if (!map) return;
+    
     try {
       if (map.annotations.length) {
         map.removeAnnotations(map.annotations);
       }
+      
       if (location) {
         const coordinate = new window.mapkit.Coordinate(
           location.latitude,
@@ -367,6 +430,7 @@ const Map = forwardRef(function Map(
       return () => cleanupFns.forEach((cleanup) => cleanup());
     const map = mapRef.current;
     const { onSelect, onDeselect, onDrag, onDragStart, onDragEnd } = handler;
+    
     if (onSelect) {
       const wrappedHandler = (event: mapkit.EventBase<mapkit.Map>) =>
         onSelect(map, annotation);
@@ -414,7 +478,9 @@ const Map = forwardRef(function Map(
     if (!isReady) return;
     const map = mapRef.current;
     if (!map) return;
-    const cleanupFunctions: (() => void)[] = [];
+    
+    const annotationCleanupFunctions: (() => void)[] = [];
+    
     try {
       const newAnnotations: mapkit.Annotation[] = [];
       const newOverlays: mapkit.Overlay[] = [];
@@ -430,7 +496,7 @@ const Map = forwardRef(function Map(
             }
           );
           const cleanup = annotationEventHandle(annotation, child.props);
-          cleanupFunctions.push(cleanup);
+          annotationCleanupFunctions.push(cleanup);
           newAnnotations.push(annotation);
         }
 
@@ -443,9 +509,8 @@ const Map = forwardRef(function Map(
               padding: padding ? new mapkit.Padding(padding) : undefined,
             }
           );
-          annotationEventHandle(annotation, child.props);
           const cleanup = annotationEventHandle(annotation, child.props);
-          cleanupFunctions.push(cleanup);
+          annotationCleanupFunctions.push(cleanup);
           newAnnotations.push(annotation);
         }
 
@@ -462,6 +527,7 @@ const Map = forwardRef(function Map(
             },
             { ...options }
           );
+          
           if (callout) {
             annotation.callout = {
               calloutAnchorOffsetForAnnotation:
@@ -515,7 +581,7 @@ const Map = forwardRef(function Map(
             };
           }
           const cleanup = annotationEventHandle(annotation, child.props);
-          cleanupFunctions.push(cleanup);
+          annotationCleanupFunctions.push(cleanup);
           newAnnotations.push(annotation);
         }
 
@@ -566,8 +632,11 @@ const Map = forwardRef(function Map(
 
       onChange?.(map, newAnnotations);
 
+      // クリーンアップ関数を保存
+      cleanupFunctionsRef.current.push(...annotationCleanupFunctions);
+
       return () => {
-        cleanupFunctions.forEach((cleanup) => cleanup());
+        annotationCleanupFunctions.forEach((cleanup) => cleanup());
         try {
           map.removeAnnotations(map.annotations);
           map.removeOverlays(map.overlays);

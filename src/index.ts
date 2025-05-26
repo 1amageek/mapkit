@@ -38,6 +38,32 @@ export {
   type PolygonOverlayProps
 } from "./annotations"
 
+// Export MapKit constants (safe to use before MapKit JS loads)
+export {
+  FeatureVisibility,
+  MapTypes,
+  ColorSchemes,
+  Distances,
+  DisplayPriority,
+  CollisionMode,
+  Transport,
+  LoadPriorities,
+  getMapKitFeatureVisibility,
+  getMapKitMapType,
+  getMapKitColorScheme,
+  getMapKitDistance,
+  getMapKitDisplayPriority,
+  getMapKitCollisionMode,
+  type FeatureVisibilityType,
+  type MapTypesType,
+  type ColorSchemesType,
+  type DistancesType,
+  type DisplayPriorityType,
+  type CollisionModeType,
+  type TransportType,
+  type LoadPrioritiesType
+} from "./constants"
+
 export * from "./search";
 // Export Map component and its types
 import Map from "./map"
