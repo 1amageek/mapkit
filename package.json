@@ -26,6 +26,14 @@
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
   },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@swc/core": "^1.10.3",
     "@types/apple-mapkit-js-browser": "^5.78.1",
